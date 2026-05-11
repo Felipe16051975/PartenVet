@@ -161,8 +161,6 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
 }
 
-}
-
 /* Utility Classes for components */
 .main-nav--centered { align-items: center; }
 .user-info-text { font-size: 0.85rem; color: var(--text-muted); margin-right: 1rem; }
