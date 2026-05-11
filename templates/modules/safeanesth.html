@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}SafeAnesthesia - PartenVet{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<style>
+    .module-container { padding: var(--space-xl); max-width: 1200px; margin: 0 auto; }
+
+    .card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: var(--border-radius-lg);
+        padding: var(--space-xl);
+        margin-bottom: var(--space-xl);
+        box-shadow: var(--box-shadow-md);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+    }
+    .card-header { display: flex; align-items: center; margin-bottom: var(--space-xl); padding-bottom: var(--space-md); border-bottom: 2px solid var(--neutral-200); }
+    .card-icon   { font-size: 1.5rem; margin-right: var(--space-md); }
+    .card-title  { font-size: 1.25rem; font-weight: 600; color: var(--text-color); margin: 0; }
+
+    .form-grid   { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-lg); margin-bottom: var(--space-lg); }
+    .form-group  { display: flex; flex-direction: column; }
+    .form-label  { font-size: 0.875rem; font-weight: 500; color: var(--neutral-600); margin-bottom: var(--space-xs); }
+    .form-input, .form-select { padding: 0.75rem 1rem; border: 1px solid var(--neutral-300); border-radius: var(--border-radius-md); font-family: 'Inter', sans-serif; font-size: 1rem; color: var(--text-color); background-color: var(--neutral-100); transition: all 0.2s ease; }
+    .form-input:focus, .form-select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2); background-color: #fff; }
+
+    .phase-tabs { display: flex; gap: var(--space-sm); margin-bottom: var(--space-xl); border-bottom: 2px solid var(--neutral-200); }
+    .phase-tab  { padding: var(--space-md) var(--space-lg); background: none; border: none; font-size: 1rem; font-weight: 500; color: var(--neutral-500); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; }
+    .phase-tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+    .phase-content        { display: none; }
+    .phase-content.active { display: block; }
+
+    .medication-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--space-md); }
+    .medication-card        { background: #fff; border: 1px solid var(--neutral-200); border-radius: var(--border-radius-md); padding: var(--space-md); cursor: pointer; transition: all 0.2s ease; }
+    .medication-card:hover  { border-color: var(--primary-light); box-shadow: var(--box-shadow-sm); transform: translateY(-2px); }
+    .medication-card.selected { border-color: var(--primary-color); background-color: rgba(13, 148, 136, 0.05); box-shadow: 0 0 0 1px var(--primary-color); }
+
+    .alert      { padding: var(--space-md); border-radius: var(--border-radius-md); margin-bottom: var(--space-md); display: flex; align-items: flex-start; gap: var(--space-sm); font-size: 0.875rem; }
+    .alert-info { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+    .btn-primary       { background-color: var(--primary-color); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--border-radius-md); font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-primary:hover { background-color: var(--primary-dark); transform: translateY(-1px); box-shadow: var(--box-shadow-sm); }
+
+    .conditions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-sm); }
+    .condition-label { display: flex; align-items: center; gap: var(--space-xs); font-size: 0.875rem; color: var(--neutral-600); cursor: pointer; }
+
+    .view-toggle { display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem; }
+    .view-btn        { padding: 0.5rem 1.5rem; background: var(--neutral-200); border: none; border-radius: 2rem; font-weight: 500; color: var(--neutral-600); cursor: pointer; transition: all 0.2s; }
+    .view-btn.active { background: var(--primary-color); color: white; box-shadow: var(--box-shadow-sm); }
+    .result-view        { display: none; }
+    .result-view.active { display: block; }
+
+    .patient-summary-box { background: var(--neutral-100); padding: var(--space-md); border-radius: var(--border-radius-md); margin-bottom: var(--space-xl); border-left: 4px solid var(--primary-color); }
+    .result-phase-block  { margin-bottom: var(--space-xl); padding: var(--space-md); background: white; border: 1px solid var(--neutral-200); border-radius: var(--border-radius-md); }
+    .result-phase-title  { font-size: 1.1rem; font-weight: 600; color: var(--primary-dark); margin-bottom: var(--space-md); padding-bottom: var(--space-xs); border-bottom: 1px solid var(--neutral-200); }
+    .med-result-item      { display: flex; justify-content: space-between; padding: var(--space-sm) 0; border-bottom: 1px solid var(--neutral-100); }
+    .med-result-item:last-child { border-bottom: none; }
+
+    .module-header-bar { display: flex; align-items: center; margin-bottom: var(--space-md); }
+    .module-back-link       { color: var(--neutral-500); font-size: 0.9rem; font-weight: 500; text-decoration: none; transition: all 0.2s; }
+    .module-back-link:hover { color: var(--primary-color); }
+
+    .header-banner    { background: linear-gradient(135deg, var(--primary-dark), var(--primary-color)); color: white; padding: 2rem; border-radius: var(--border-radius-lg); margin-bottom: 2rem; box-shadow: var(--box-shadow-md); }
+    .header-banner h1 { margin: 0 0 0.5rem 0; font-size: 1.8rem; color: white; }
+    .header-banner p  { margin: 0; opacity: 0.9; }
+
+    .tiva-table         { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; border: 1px solid var(--neutral-200); }
+    .tiva-table th      { background: var(--neutral-100); color: var(--neutral-600); text-align: left; padding: 10px; border-bottom: 2px solid var(--neutral-200); font-weight: 600; }
+    .tiva-table td      { padding: 10px; border-bottom: 1px solid var(--neutral-100); color: var(--text-color); }
+    .tiva-table tr:hover { background: var(--neutral-50); }
+    .tiva-table strong  { color: var(--primary-color); font-weight: 700; }
+
+    /* Clases para elementos que antes usaban estilos inline */
+    .warning-banner {
+        display: none;
+        border-left: 5px solid #be123c;
+        background: #fff1f2;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: var(--box-shadow-sm);
+    }
+    .form-group--full   { grid-column: 1 / -1; }
+    .form-hint          { color: var(--neutral-500); margin-top: 0.25rem; font-size: 0.85rem; }
+    .comorbidities-wrap { margin-top: var(--space-lg); }
+    .comorbidities-label { margin-bottom: var(--space-md); display: block; }
+    .surgery-suggestions {
+        display: none;
+        padding: 1rem;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        margin-top: 1rem;
+        font-size: 0.85rem;
+    }
+    .maintenance-config { margin-bottom: 1.5rem; }
+    .calculate-wrap     { margin-top: var(--space-xl); text-align: center; }
+    .btn-calculate      { padding: var(--space-md) var(--space-2xl); font-size: 1.125rem; }
+    .results-card       { border-top: 5px solid var(--primary-color); }
+    .hidden-section     { display: none; }
+    .clinical-view-wrap { display: none; }
+    .print-actions      { text-align: center; margin-top: var(--space-xl); display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-print-tech     { background: #0f172a; }
+    .btn-print-clinical { background: #334155; }
+
+    /* Estilos de impresión */
+    @media print {
+        @page { size: letter; margin: 0.5in; }
+
+        .sidebar, .navbar, .module-header-bar, .header-banner, .card:not(#resultsSection),
+        .view-toggle, .btn-primary, .btn-secondary, #saveProtocolBtn, .phase-tabs,
+        .alert:not(#clinicalWarningBanner) {
+            display: none !important;
+        }
+
+        body { background: white !important; color: black !important; font-size: 10pt; }
+        .module-container { padding: 0; max-width: 100%; }
+
+        #resultsSection {
+            display: block !important;
+            box-shadow: none !important;
+            border: 1px solid #eee !important;
+            padding: 0 !important;
+        }
+        .patient-summary-box {
+            background: #f8fafc !important;
+            border: 1px solid #ddd !important;
+            border-left: 5px solid #000 !important;
+            color: black !important;
+            margin-bottom: 20px !important;
+        }
+        .result-phase-title {
+            color: black !important;
+            border-bottom: 2px solid black !important;
+            text-transform: uppercase;
+            font-size: 11pt !important;
+        }
+        .tiva-table th { background: #eee !important; color: black !important; border: 1px solid #ccc !important; }
+        .tiva-table td { border: 1px solid #eee !important; color: black !important; }
+        .tiva-table strong { color: black !important; }
+        #clinicalWarningBanner {
+            display: block !important;
+            background: #fff1f2 !important;
+            border: 2px solid #be123c !important;
+            color: #be123c !important;
+            padding: 10px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="module-container">
+    <div class="module-header-bar">
+        <a href="{{ url_for('dashboard') }}" class="module-back-link">← Volver al panel</a>
+    </div>
+    <div class="header-banner">
+        <h1>💉 SafeAnesthesia</h1>
+        <p>Cálculo Anestésico Clínico · TIVA · Protocolos Seguros</p>
+    </div>
+
+    <div id="alertContainer"></div>
+
+    <div id="clinicalWarningBanner" class="alert alert-critical warning-banner"></div>
+
+    <!-- Paciente -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon">📋</div>
+            <h2 class="card-title">Paciente</h2>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group form-group--full">
+                <label class="form-label" for="pacienteSelect">Seleccionar Paciente de PartenVet</label>
+                <select id="pacienteSelect" class="form-select">
+                    <option value="">Cargando pacientes...</option>
+                </select>
+                <small class="form-hint">Los datos se autocompletarán desde la base clínica común.</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="patientName">Nombre</label>
+                <input type="text" id="patientName" class="form-input" placeholder="Nombre de mascota" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="species">Especie</label>
+                <select id="species" class="form-select">
+                    <option value="canine">Canino (Perro)</option>
+                    <option value="feline">Felino (Gato)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="age">Edad (años)</label>
+                <input type="number" id="age" class="form-input" placeholder="Ej: 5" step="0.1" min="0" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="weight">Peso (kg)</label>
+                <input type="number" id="weight" class="form-input" placeholder="Ej: 25" step="0.1" min="0" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="asaStatus">Estado ASA</label>
+                <select id="asaStatus" class="form-select">
+                    <option value="I">ASA I – Paciente sano</option>
+                    <option value="II">ASA II – Enfermedad leve</option>
+                    <option value="III">ASA III – Enfermedad sistémica grave</option>
+                    <option value="IV">ASA IV – Enfermedad sistémica severa</option>
+                    <option value="V">ASA V – Moribundo</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="surgeryType">Tipo de Cirugía</label>
+                <select id="surgeryType" class="form-select">
+                    <option value="castration">Castración (intensidad media)</option>
+                    <option value="ovariohysterectomy">Ovariohisterectomia (media-alta)</option>
+                    <option value="dental">Dental (baja)</option>
+                    <option value="orthopedic">Ortopédica (alta)</option>
+                    <option value="soft_tissue">Tejido Blando (media)</option>
+                    <option value="other">Otro (manual)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="comorbidities-wrap">
+            <label class="form-label comorbidities-label">Comorbilidades / Condiciones</label>
+            <div class="conditions-grid">
+                <label class="condition-label"><input type="checkbox" class="condition-checkbox" value="cardiac" /><span>Cardiopatía</span></label>
+                <label class="condition-label"><input type="checkbox" class="condition-checkbox" value="renal" /><span>Nefropatía</span></label>
+                <label class="condition-label"><input type="checkbox" class="condition-checkbox" value="hepatic" /><span>Hepatopatía</span></label>
+                <label class="condition-label"><input type="checkbox" class="condition-checkbox" value="respiratory" /><span>Enf. Respiratoria</span></label>
+            </div>
+        </div>
+
+        <div id="surgerySuggestions" class="surgery-suggestions"></div>
+    </div>
+
+    <!-- Medicamentos -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon">💉</div>
+            <h2 class="card-title">Selección de Medicamentos</h2>
+        </div>
+
+        <div class="phase-tabs">
+            <button class="phase-tab active" data-phase="premedication">1. Premedicación</button>
+            <button class="phase-tab" data-phase="induction">2. Inducción</button>
+            <button class="phase-tab" data-phase="maintenance">3. Mantenimiento</button>
+        </div>
+
+        <div id="premedicationPhase" class="phase-content active">
+            <div id="premedicationMedications" class="medication-grid"></div>
+        </div>
+
+        <div id="inductionPhase" class="phase-content">
+            <div id="inductionMedications" class="medication-grid"></div>
+        </div>
+
+        <div id="maintenancePhase" class="phase-content">
+            <div class="form-grid maintenance-config">
+                <div class="form-group">
+                    <label class="form-label" for="maintenanceDuration">Duración estimada cirugía (min)</label>
+                    <input type="number" id="maintenanceDuration" class="form-input" value="60" min="1" step="1" />
+                </div>
+            </div>
+            <div id="maintenanceMedications" class="medication-grid"></div>
+        </div>
+
+        <div class="calculate-wrap">
+            <button id="calculateBtn" class="btn-primary btn-calculate">
+                Calcular Protocolo Completo
+            </button>
+        </div>
+    </div>
+
+    <!-- Bloqueos Locales -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon">🧪</div>
+            <h2 class="card-title">Bloqueos Locales / Anestesia Regional</h2>
+        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label" for="blockAgent">Agente</label>
+                <select id="blockAgent" class="form-select">
+                    <option value="lidocaine2">Lidocaína 2% (20 mg/ml)</option>
+                    <option value="lidocaine1">Lidocaína 1% (10 mg/ml)</option>
+                    <option value="bupivacaine">Bupivacaína 0.5% (5 mg/ml)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="blockVolume">Volumen a usar (ml)</label>
+                <input type="number" id="blockVolume" class="form-input" placeholder="Ej: 1.0" step="0.1" min="0" />
+            </div>
+        </div>
+        <div id="blockResults"></div>
+    </div>
+
+    <!-- Resultados -->
+    <div id="resultsSection" class="card results-card hidden-section">
+        <div class="card-header">
+            <div class="card-icon">📊</div>
+            <h2 class="card-title">Resultados del Protocolo</h2>
+        </div>
+
+        <div class="view-toggle">
+            <button id="viewTechnicalBtn" class="view-btn active" data-view="technical">📄 Orden Técnica</button>
+            <button id="viewClinicalBtn" class="view-btn" data-view="clinical">🔬 Auditoría Clínica</button>
+        </div>
+
+        <div id="technicalView" class="result-view active">
+            <div id="patientSummary" class="patient-summary-box"></div>
+            <div id="premedicationResultsTech"></div>
+            <div id="inductionResultsTech"></div>
+            <div id="maintenanceResultsTech"></div>
+        </div>
+
+        <div id="clinicalView" class="result-view clinical-view-wrap">
+            <div id="clinicalAuditLog"></div>
+        </div>
+
+        <div class="print-actions">
+            <button id="printTechBtn" class="btn-primary btn-print-tech">🖨️ Imprimir Orden Técnica</button>
+            <button id="printClinicalBtn" class="btn-primary btn-print-clinical">🖨️ Imprimir Análisis Clínico</button>
+            <button id="saveProtocolBtn" class="btn-primary">💾 Guardar en Historial PartenVet</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/vendor/jspdf.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/safeanesth.js') }}"></script>
+{% endblock %}

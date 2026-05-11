@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Usuarios - PartenVet{% endblock %}
+
+{% block extra_css %}
+<style>
+    .create-user-section { display: none; background: white; padding: 2rem; border-radius: 8px; box-shadow: var(--box-shadow-md); margin-bottom: 2rem; }
+    .create-user-title { margin-bottom: 1.5rem; color: var(--secondary-color); }
+    .flex-row-gap { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    .flex-row-gap-mb { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+    .flex-1 { flex: 1; }
+    .input-styled { width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .message-box { display: none; padding: 1rem; margin-bottom: 1rem; border-radius: 6px; }
+    .actions-right { display: flex; justify-content: flex-end; gap: 1rem; }
+    .text-center { text-align: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container db-container">
+    <div class="page-header">
+        <h2>Gestión de Usuarios del Sistema</h2>
+        <div>
+            <button id="showCreateFormBtn" class="btn-primary">+ Nuevo Usuario</button>
+        </div>
+    </div>
+
+    <!-- Formulario de creación (oculto por defecto) -->
+    <div id="createUserSection" class="create-user-section">
+        <h3 class="create-user-title">Registrar Nuevo Usuario</h3>
+        <form id="createUserForm">
+            <div class="form-row flex-row-gap">
+                <div class="form-group flex-1">
+                    <label class="form-label" for="userName">Nombre Completo</label>
+                    <input type="text" id="userName" class="form-input input-styled" required placeholder="Ej: Dr. Juan Pérez" />
+                </div>
+                <div class="form-group flex-1">
+                    <label class="form-label" for="userEmail">Correo Electrónico (Login)</label>
+                    <input type="email" id="userEmail" class="form-input input-styled" required placeholder="ejemplo@partenvet.cl" />
+                </div>
+            </div>
+            
+            <div class="form-row flex-row-gap-mb">
+                <div class="form-group flex-1">
+                    <label class="form-label" for="userPassword">Contraseña</label>
+                    <input type="password" id="userPassword" class="form-input input-styled" required />
+                </div>
+                <div class="form-group flex-1">
+                    <label class="form-label" for="userRole">Rol en el Sistema</label>
+                    <select id="userRole" class="form-select input-styled" required title="Seleccionar Rol">
+                        <option value="">Cargando roles...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="formMessage" class="message-box"></div>
+
+            <div class="actions-right">
+                <button type="button" id="cancelCreateBtn" class="btn-secondary">Cancelar</button>
+                <button type="submit" id="saveUserBtn" class="btn-primary">Guardar Usuario</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de Usuarios -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Correo Electrónico</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="usersTableBody">
+                <tr><td colspan="6" class="text-center">Cargando usuarios...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/users.js') }}"></script>
+{% endblock %}

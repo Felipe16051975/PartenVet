@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Paciente - PartenVet{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container db-container">
+    <div class="page-header">
+        <h2>Registrar Nuevo Paciente</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn-secondary">Volver al panel</a>
+    </div>
+
+    <div class="form-card">
+        <form id="registerPatientForm">
+            
+            <fieldset>
+                <legend>Datos del Tutor</legend>
+                <div class="form-row">
+                    <div class="form-group third">
+                        <label for="rut">RUT / DNI *</label>
+                        <input type="text" id="rut" name="rut" placeholder="12345678-9" required>
+                    </div>
+                    <div class="form-group third">
+                        <label for="nombre_tutor">Nombres *</label>
+                        <input type="text" id="nombre_tutor" name="nombre_tutor" required>
+                    </div>
+                    <div class="form-group third">
+                        <label for="apellidos_tutor">Apellidos</label>
+                        <input type="text" id="apellidos_tutor" name="apellidos_tutor">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label for="telefono_tutor">Teléfono</label>
+                        <input type="tel" id="telefono_tutor" name="telefono_tutor">
+                    </div>
+                    <div class="form-group half">
+                        <label for="correo_tutor">Correo Electrónico</label>
+                        <input type="email" id="correo_tutor" name="correo_tutor">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="direccion_tutor">Dirección</label>
+                    <input type="text" id="direccion_tutor" name="direccion_tutor">
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Datos Clínicos del Paciente</legend>
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label for="nombre_paciente">Nombre de la Mascota *</label>
+                        <input type="text" id="nombre_paciente" name="nombre_paciente" required>
+                    </div>
+                    <div class="form-group half">
+                        <label for="especie">Especie *</label>
+                        <select id="especie" name="especie" required>
+                            <option value="">Seleccione...</option>
+                            <option value="Canino">Canino</option>
+                            <option value="Felino">Felino</option>
+                            <option value="Exotico">Exótico</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group third">
+                        <label for="raza">Raza</label>
+                        <input type="text" id="raza" name="raza">
+                    </div>
+                    <div class="form-group third">
+                        <label for="sexo">Sexo</label>
+                        <select id="sexo" name="sexo">
+                            <option value="M">Macho</option>
+                            <option value="H">Hembra</option>
+                        </select>
+                    </div>
+                    <div class="form-group third">
+                        <label for="peso">Peso Actual (kg) *</label>
+                        <input type="number" id="peso" name="peso" step="0.1" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label for="fecha_nacimiento">Fecha de Nacimiento</label>
+                        <input type="date" id="fecha_nacimiento" name="fecha_nacimiento">
+                    </div>
+                </div>
+            </fieldset>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary" id="savePatientBtn">Guardar paciente</button>
+            </div>
+            <div id="formMessage" class="form-message"></div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/patients.js') }}"></script>
+{% endblock %}

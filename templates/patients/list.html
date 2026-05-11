@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Base de Datos Clínica - PartenVet{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container db-container">
+    <div class="page-header">
+        <h2>Base de Datos Clínica Centralizada</h2>
+        <div>
+            <a href="{{ url_for('dashboard') }}" class="btn-secondary mr-4">Volver al panel</a>
+            <a href="{{ url_for('pacientes_register') }}" class="btn-primary">+ Registrar Paciente</a>
+        </div>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Buscar por nombre de paciente o tutor...">
+        <button id="searchBtn" class="btn-secondary">Buscar</button>
+    </div>
+
+    <div class="table-container">
+        <table class="clinical-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Paciente</th>
+                    <th>Especie/Raza</th>
+                    <th>Tutor</th>
+                    <th>Acciones / Integración</th>
+                </tr>
+            </thead>
+            <tbody id="patientsTableBody">
+                <!-- Los datos se cargarán por JS -->
+                <tr>
+                    <td colspan="5" class="loading-cell">Cargando pacientes...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/patients.js') }}"></script>
+{% endblock %}

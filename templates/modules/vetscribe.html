@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}VetScribe - PartenVet{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<style>
+    .module-container { padding: var(--space-xl); max-width: 1000px; margin: 0 auto; }
+    
+    .module-header-bar { display: flex; align-items: center; margin-bottom: var(--space-md); }
+    .module-back-link { color: var(--neutral-500); font-size: 0.9rem; font-weight: 500; text-decoration: none; transition: all 0.2s; }
+    .module-back-link:hover { color: var(--primary-color); }
+    
+    .card { background: rgba(255, 255, 255, 0.95); border-radius: var(--border-radius-lg); padding: var(--space-xl); margin-bottom: var(--space-xl); box-shadow: var(--box-shadow-md); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+    .card-header { display: flex; align-items: center; margin-bottom: var(--space-xl); padding-bottom: var(--space-md); border-bottom: 2px solid var(--neutral-200); }
+    .card-icon { font-size: 1.5rem; margin-right: var(--space-md); }
+    .card-title { font-size: 1.25rem; font-weight: 600; color: var(--text-color); margin: 0; }
+    
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-lg); margin-bottom: var(--space-lg); }
+    .form-group { display: flex; flex-direction: column; }
+    .form-label { font-size: 0.875rem; font-weight: 500; color: var(--neutral-600); margin-bottom: var(--space-xs); }
+    .form-input, .form-select, .form-textarea { padding: 0.75rem 1rem; border: 1px solid var(--neutral-300); border-radius: var(--border-radius-md); font-family: 'Inter', sans-serif; font-size: 1rem; color: var(--text-color); background-color: var(--neutral-100); transition: all 0.2s ease; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2); background-color: #fff; }
+    
+    .btn-primary { background-color: var(--primary-color); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--border-radius-md); font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-primary:hover { background-color: var(--primary-dark); transform: translateY(-1px); box-shadow: var(--box-shadow-sm); }
+    
+    .btn-secondary { background-color: var(--neutral-600); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--border-radius-md); font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-secondary:hover { background-color: var(--neutral-800); }
+
+    .header-banner { background: linear-gradient(135deg, #2563eb, #3b82f6); color: white; padding: 2rem; border-radius: var(--border-radius-lg); margin-bottom: 2rem; box-shadow: var(--box-shadow-md); }
+    .header-banner h1 { margin: 0 0 0.5rem 0; font-size: 1.8rem; }
+    .header-banner p { margin: 0; opacity: 0.9; }
+
+    .prescription-list { list-style: none; padding: 0; margin-bottom: 1rem; }
+    .prescription-item { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 1rem; border: 1px solid var(--neutral-200); border-radius: 8px; margin-bottom: 0.5rem; }
+    .prescription-item strong { color: var(--primary-dark); }
+    .remove-btn { background: #ef4444; color: white; border: none; border-radius: 4px; padding: 0.25rem 0.5rem; cursor: pointer; font-size: 0.8rem; }
+
+    /* Fix inline styles */
+    .form-group--full { grid-column: 1 / -1; }
+    .form-hint { color: var(--neutral-500); margin-top: 0.25rem; }
+    .med-search-results { display: none; position: absolute; background: white; border: 1px solid #ddd; width: 90%; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; margin-top: 2px; }
+    .dose-calculator { display: none; background: #f0fdfa; border: 1px solid #ccfbf1; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; }
+    .dose-calc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .dose-calc-title { font-size: 0.9rem; font-weight: 700; color: #0d9488; margin: 0; }
+    .dose-calc-close { background: none; border: none; color: #999; cursor: pointer; }
+    .calc-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .calc-result-box { padding: 0.75rem; background: white; border: 1px solid #ddd; border-radius: 6px; font-weight: 700; text-align: center; }
+    .btn-apply-calc { width: 100%; margin-top: 1rem; background: #0d9488; }
+    .mb-1-5 { margin-bottom: 1.5rem; }
+    .btn-add-med { width: 100%; margin-bottom: 1.5rem; background: var(--neutral-800); }
+    .prescription-container { display: none; }
+    .prescription-title { font-size: 0.8rem; font-weight: 700; color: var(--neutral-400); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+    .recommendations-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .template-select { padding: 0.25rem; font-size: 0.8rem; width: auto; }
+    .action-buttons { margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-gen-pdf { padding: 1rem 2rem; font-size: 1.1rem; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); }
+    .btn-save-doc { padding: 1rem 2rem; font-size: 1.1rem; }
+    .mb-1 { margin-bottom: 1rem; }
+    .btn-gen-cert { width: 100%; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="module-container">
+    <div class="module-header-bar">
+        <a href="{{ url_for('dashboard') }}" class="module-back-link">← Volver al panel</a>
+    </div>
+    <div class="header-banner">
+        <h1>📝 VetScribe</h1>
+        <p>Generación de Recetas Médicas y Certificados Clínicos</p>
+    </div>
+
+    <!-- =============================== -->
+    <!-- CARD 1: SELECCIÓN DEL PACIENTE -->
+    <!-- =============================== -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon">📋</div>
+            <h2 class="card-title">Paciente</h2>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group form-group--full">
+                <label class="form-label" for="pacienteSelect">Seleccionar Paciente de PartenVet</label>
+                <select id="pacienteSelect" class="form-select" title="Seleccionar Paciente">
+                    <option value="">Cargando pacientes...</option>
+                </select>
+                <small class="form-hint">La información se utilizará para autocompletar la receta o certificado.</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="patientName">Nombre de Mascota</label>
+                <input type="text" id="patientName" class="form-input" placeholder="Ej: Max" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="species">Especie</label>
+                <input type="text" id="species" class="form-input" placeholder="Ej: Canino" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="tutorName">Tutor</label>
+                <input type="text" id="tutorName" class="form-input" placeholder="Ej: Juan Pérez" />
+            </div>
+        </div>
+    </div>
+
+    <!-- =============================== -->
+    <!-- CARD 2: EDITOR DE RECETA INTELIGENTE -->
+    <!-- =============================== -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon">💊</div>
+            <h2 class="card-title">Prescripción Médica</h2>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group form-group--full">
+                <label class="form-label" for="medSearch">Buscar en Vademécum Clínico</label>
+                <input type="text" id="medSearch" class="form-input" placeholder="Ej: Amoxicilina, Meloxicam..." autocomplete="off" />
+                <div id="medSearchResults" class="med-search-results"></div>
+            </div>
+        </div>
+
+        <div id="doseCalculator" class="dose-calculator">
+            <div class="dose-calc-header">
+                <h3 class="dose-calc-title">Calculadora de Dosis: <span id="calcMedName"></span></h3>
+                <button id="closeCalcBtn" class="dose-calc-close">✕</button>
+            </div>
+            <div class="form-grid calc-grid">
+                <div class="form-group">
+                    <label class="form-label">Dosis mg/kg</label>
+                    <input type="number" id="calcMgKg" class="form-input" step="0.1" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Presentación</label>
+                    <select id="calcPresentation" class="form-select" title="Seleccionar Presentación"></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Resultado</label>
+                    <div id="calcResult" class="calc-result-box">-</div>
+                </div>
+            </div>
+            <button id="applyCalcBtn" class="btn-primary btn-apply-calc">Aplicar a Receta</button>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label" for="medName">Medicamento / Principio Activo</label>
+                <input type="text" id="medName" class="form-input" placeholder="Nombre" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="medDose">Dosis y Frecuencia</label>
+                <input type="text" id="medDose" class="form-input" placeholder="Ej: 1 comp cada 12 hrs" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="medDuration">Duración</label>
+                <input type="text" id="medDuration" class="form-input" placeholder="Ej: Por 7 días" />
+            </div>
+        </div>
+        
+        <div class="form-group mb-1-5">
+            <label class="form-label" for="medNote">Indicación específica</label>
+            <input type="text" id="medNote" class="form-input" placeholder="Ej: Administrar con comida" />
+        </div>
+
+        <button id="addMedBtn" class="btn-secondary btn-add-med">+ Agregar a la Receta</button>
+
+        <div id="prescriptionContainer" class="prescription-container">
+            <h3 class="prescription-title">Medicamentos Prescritos</h3>
+            <ul id="medList" class="prescription-list"></ul>
+        </div>
+    </div>
+
+    <!-- ================================ -->
+    <!-- CARD 3: INDICACIONES Y CITAS     -->
+    <!-- ================================ -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon">📋</div>
+            <h2 class="card-title">Manejo Clínico y Citas</h2>
+        </div>
+        
+        <div class="form-group mb-1-5">
+            <div class="recommendations-header">
+                <label class="form-label" for="recommendations">Recomendaciones adicionales</label>
+                <select id="templateSelect" class="form-select template-select" title="Seleccionar Plantilla">
+                    <option value="">-- Usar Plantilla --</option>
+                    <option value="post_op">Post-Operatorio General</option>
+                    <option value="diet">Dieta Blanda</option>
+                    <option value="skin">Cuidado de Herida</option>
+                </select>
+            </div>
+            <textarea id="recommendations" class="form-textarea" rows="4" placeholder="Instrucciones de manejo, dieta, limpieza, etc."></textarea>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label" for="followUpDate">Fecha de Re-control</label>
+                <input type="date" id="followUpDate" class="form-input" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="followUpReason">Motivo de Cita</label>
+                <input type="text" id="followUpReason" class="form-input" placeholder="Ej: Retiro de puntos" />
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button id="generatePdfBtn" class="btn-primary btn-gen-pdf">📄 Generar Receta PDF</button>
+            <button id="saveDocumentBtn" class="btn-secondary btn-save-doc">💾 Guardar en Historial</button>
+        </div>
+    </div>
+
+    <!-- ================================ -->
+    <!-- CARD 4: CERTIFICADOS             -->
+    <!-- ================================ -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon">📜</div>
+            <h2 class="card-title">Certificados</h2>
+        </div>
+        <div class="form-group mb-1">
+            <label class="form-label" for="certType">Tipo de Certificado</label>
+            <select id="certType" class="form-select" title="Tipo de Certificado">
+                <option value="health">Certificado de Salud General</option>
+                <option value="travel">Certificado de Viaje</option>
+                <option value="euthanasia">Acta de Eutanasia</option>
+                <option value="custom">Contenido Personalizado</option>
+            </select>
+        </div>
+        <div class="form-group mb-1-5">
+            <label class="form-label" for="certContent">Cuerpo del Certificado</label>
+            <textarea id="certContent" class="form-textarea" rows="6" placeholder="El contenido se generará automáticamente según el tipo, pero puede editarlo aquí..."></textarea>
+        </div>
+        <button id="generateCertBtn" class="btn-primary btn-gen-cert">📄 Generar Certificado PDF</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/vendor/jspdf.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vetscribe.js') }}"></script>
+{% endblock %}

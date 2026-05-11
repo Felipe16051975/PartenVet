@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PartenVet{% endblock %}</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    
+    <!-- Header condicional (No mostrar en login) -->
+    {% if request.path != '/' and request.path != '/login' %}
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo-area">
+                <a href="{{ url_for('dashboard') }}" class="logo-link">
+                    <h1>Parten<span>Vet</span></h1>
+                </a>
+            </div>
+            <nav class="main-nav main-nav--centered">
+                <span class="user-info-text">
+                    {{ session.get('nombre') }} (<strong>{{ session.get('rol') }}</strong>)
+                </span>
+                <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">Dashboard</a>
+                <a href="{{ url_for('pacientes_list') }}" class="nav-item {% if '/pacientes' in request.path %}active{% endif %}">Base Clínica</a>
+                {% if session.get('rol') == 'Administrador Veterinario' %}
+                <a href="{{ url_for('users_management') }}" class="nav-item {% if '/usuarios' in request.path %}active{% endif %}">Gestión de Usuarios</a>
+                <a href="#" onclick="alert('Historial de Auditoría del Sistema\n\n- LOGIN_SUCCESS: admin@partenvet.cl\n- GEN_PDF: asistente@partenvet.cl\n- DB_BACKUP: completado'); return false;" class="nav-item audit-link">🛡️ Auditoría</a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}" class="nav-item logout-btn">Cerrar Sesión</a>
+            </nav>
+        </div>
+    </header>
+    {% endif %}
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Global JS -->
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script>
+        // Simple logout logic
+        const logoutBtn = document.getElementById('logoutBtn');
+        if(logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                localStorage.removeItem('partenvet_token');
+                window.location.href = "{{ url_for('logout') }}";
+            });
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,48 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Variables de entorno
+.env
+
+# Python compilado
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Bases de datos locales
+*.db
+*.sqlite3
+
+# Archivos comprimidos
+*.zip
+*.tar.gz
+*.rar
+PartenVet*.zip
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Caché y cobertura de tests
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Node (si se usa alguna herramienta JS)
+node_modules/
+
+# PDFs de requisitos o documentos internos
+requirements.pdf
+
+# Directorio de trabajo temporal
+scratch/

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - PartenVet{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    
+    <section class="welcome-section">
+        <h2>Bienvenido, <span id="userNameDisplay">Dr. Admin</span></h2>
+        <p>Seleccione un módulo clínico para comenzar a trabajar o acceda a la base de datos de pacientes.</p>
+    </section>
+
+    <!-- Paciente Activo (Shared Context) -->
+    <div id="activePatientBanner" class="active-patient-banner">
+        <div>
+            <span class="active-patient-label">Consulta Activa</span>
+            <strong id="activePatientName" class="active-patient-name">Firulais</strong> · <span id="activePatientDetails">Canino (10 kg)</span>
+        </div>
+        <div class="active-patient-actions">
+            <a href="/safe-anesthesia" class="btn-primary btn-white">Ir a SafeAnesth</a>
+            <a href="/vetscribe" class="btn-primary btn-white">Ir a VetScribe</a>
+        </div>
+    </div>
+
+    <!-- Módulos Principales (Launcher) -->
+    <section class="modules-grid">
+        <!-- Tarjeta VetScribe -->
+        <a href="{{ url_for('vetscribe_module') }}" class="module-card vetscribe-card">
+            <div class="card-badge">Documentación clínica</div>
+            <div class="card-icon">
+                <!-- Clinical Document Icon -->
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <div class="card-content">
+                <h3>VetScribe</h3>
+                <p>Generación de recetas, certificados, órdenes de examen y recetas magistrales.</p>
+            </div>
+            <div class="card-action">
+                <span class="btn-module">Ingresar &rarr;</span>
+            </div>
+        </a>
+
+        <!-- Tarjeta SafeAnesthesia -->
+        <a href="{{ url_for('safeanesth_module') }}" class="module-card safeanesth-card">
+            <div class="card-badge">Cálculo anestésico seguro</div>
+            <div class="card-icon">
+                <!-- Syringe Icon -->
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2l4 4"/><path d="M14 6l4 4"/><path d="M12 14v4h-4l-6 4 2-6v-4h4z"/><path d="M22 6L14 14"/><path d="M10 18l-4 4"/></svg>
+            </div>
+            <div class="card-content">
+                <h3>SafeAnesthesia</h3>
+                <p>Cálculo de dosis, protocolos y mezclas anestésicas para pacientes veterinarios.</p>
+            </div>
+            <div class="card-action">
+                <span class="btn-module">Ingresar &rarr;</span>
+            </div>
+        </a>
+    </section>
+
+    <!-- Base de Datos Clínica -->
+    <section class="clinical-db-section">
+        <div class="section-header">
+            <h3>Base de Datos Clínica Centralizada</h3>
+            <p>Información compartida entre VetScribe y SafeAnesthesia.</p>
+        </div>
+        
+        <div class="db-actions-grid">
+            <a href="{{ url_for('pacientes_register') }}" class="db-action-card">
+                <div class="icon-wrapper"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg></div>
+                <h4>Registrar Paciente</h4>
+            </a>
+            <a href="{{ url_for('pacientes_list') }}" class="db-action-card">
+                <div class="icon-wrapper"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
+                <h4>Buscar Paciente</h4>
+            </a>
+            <a href="{{ url_for('historial') }}" class="db-action-card">
+                <div class="icon-wrapper"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg></div>
+                <h4>Ver Historial Global</h4>
+            </a>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Recuperar info del usuario si existe
+    const userInfo = JSON.parse(localStorage.getItem('partenvet_user') || '{}');
+    if(userInfo && userInfo.nombre) {
+        document.getElementById('userNameDisplay').textContent = userInfo.nombre;
+    }
+
+    // Verificar Paciente Activo
+    async function checkActiveContext() {
+        try {
+            const res = await fetchAPI('/paciente-activo');
+            if (res.success && res.data) {
+                const p = res.data;
+                document.getElementById('activePatientBanner').style.display = 'flex';
+                document.getElementById('activePatientName').textContent = p.nombre;
+                document.getElementById('activePatientDetails').textContent = `${p.especie} (${p.peso_actual || '?'} kg)`;
+            }
+        } catch (e) {
+            console.log("No hay contexto de paciente activo.");
+        }
+    }
+    checkActiveContext();
+</script>
+{% endblock %}

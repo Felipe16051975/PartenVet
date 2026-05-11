@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión - PartenVet{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h1 class="brand">Bienvenido a Parten<span>Vet</span></h1>
+            <p class="subtitle">Plataforma modular para apoyo clínico veterinario</p>
+        </div>
+
+        <form id="loginForm" class="login-form">
+            <div class="form-group">
+                <label for="correo">Correo Electrónico</label>
+                <input type="email" id="correo" name="correo" placeholder="dr.nombre@clinica.cl" required>
+                <span class="error-msg" id="correoError"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" placeholder="••••••••" required>
+                <span class="error-msg" id="passwordError"></span>
+            </div>
+
+            <div class="form-options">
+                <label class="checkbox-container">
+                    <input type="checkbox" name="remember">
+                    <span class="checkmark"></span>
+                    Recordarme
+                </label>
+                <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+            </div>
+
+            <button type="submit" class="btn-primary btn-block" id="loginBtn">Ingresar al Sistema</button>
+        </form>
+
+        <div class="login-footer">
+            <p><small>Integración Modular: VetScribe & SafeAnesthesia</small></p>
+            <p><small class="login-security-notice">🔒 Acceso seguro para personal autorizado</small></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+{% endblock %}

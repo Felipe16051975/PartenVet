@@ -1,0 +1,17 @@
+# ============================================================
+# PartenVet – Dependencias Python
+# Proyecto de Titulación IPLACEX
+# Instalar con: pip install -r requirements.txt
+# ============================================================
+
+# Framework web
+Flask==3.0.0
+
+# Conector base de datos MySQL
+mysql-connector-python==8.2.0
+
+# Variables de entorno
+python-dotenv==1.0.0
+
+# Seguridad: hashing de contraseñas (incluido con Flask)
+Werkzeug==3.0.1
