@@ -134,11 +134,11 @@ Las tablas `documentos` y `calculos_anestesia` utilizan columnas de tipo `JSON` 
 - Python 3.10+
 - MySQL Server 8.0+
 
-### Pasos
+### Instalación Paso a Paso
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/tu-usuario/PartenVet.git
+git clone https://github.com/Felipe16051975/PartenVet.git
 cd PartenVet
 
 # 2. Crear y activar entorno virtual
