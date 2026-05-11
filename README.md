@@ -18,7 +18,7 @@ Ambos módulos comparten una **base de datos clínica única**, un **sistema de 
 
 ## Arquitectura del Sistema (3 Capas)
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │  Capa de Presentación                               │
 │  HTML5 · CSS3 (propio) · JavaScript · Jinja2        │
@@ -40,7 +40,7 @@ Ambos módulos comparten una **base de datos clínica única**, un **sistema de 
 ## Tecnologías Utilizadas
 
 | Capa | Tecnología |
-|---|---|
+| --- | --- |
 | Backend | Python 3.x + Flask |
 | Base de Datos | MySQL (via `mysql-connector-python`) con Fallback a SQLite |
 | Frontend | HTML5, CSS3, Vanilla JavaScript |
@@ -54,14 +54,18 @@ Ambos módulos comparten una **base de datos clínica única**, un **sistema de 
 ## Módulos Integrados
 
 ### 📝 VetScribe
+
 Módulo de documentación clínica integrado como vista nativa de Flask. Permite:
+
 - Seleccionar paciente desde la base clínica común.
 - Construir y gestionar recetas médicas con lista de medicamentos.
 - Generar recetas y certificados en formato PDF (via `jsPDF`).
 - Guardar el documento en el historial clínico del paciente.
 
 ### 💉 SafeAnesthesia
+
 Módulo de cálculo anestésico integrado como vista nativa de Flask. Permite:
+
 - Seleccionar paciente y autocompletar especie.
 - Calcular protocolos de premedicación, inducción y mantenimiento TIVA.
 - Aplicar ajustes automáticos de dosis según estado ASA y comorbilidades.
@@ -70,7 +74,9 @@ Módulo de cálculo anestésico integrado como vista nativa de Flask. Permite:
 - Guardar el protocolo en el historial clínico del paciente.
 
 ### 👥 Gestión Clínica (CRUD)
+
 Módulo base de administración que permite:
+
 - Operaciones completas CRUD (Crear, Leer, Actualizar, Eliminar) de pacientes y tutores a través de la API REST.
 - Listado y búsqueda avanzada en la base de datos de pacientes.
 - Módulo de gestión de usuarios para crear, listar y eliminar cuentas del personal clínico (exclusivo para Administrador Veterinario).
@@ -80,7 +86,7 @@ Módulo base de administración que permite:
 ## Seguridad Implementada
 
 | Mecanismo | Implementación |
-|---|---|
+| --- | --- |
 | Autenticación | Login único con validación por email/contraseña |
 | Contraseñas | Hasheadas con `Werkzeug.security.generate_password_hash` |
 | Sesiones | `flask.session` con `SECRET_KEY` desde `.env` |
@@ -96,7 +102,7 @@ Módulo base de administración que permite:
 
 El esquema (`database/schema.sql`) implementa un modelo relacional normalizado:
 
-```
+```text
 roles ──< usuarios
 tutores ──< pacientes ──< historial
                      ──< documentos         (VetScribe)
@@ -105,7 +111,7 @@ logs_sistema (auditoría independiente)
 ```
 
 | Tabla | Propósito |
-|---|---|
+| --- | --- |
 | `roles` | Perfiles de acceso del sistema |
 | `usuarios` | Cuentas del personal clínico |
 | `tutores` | Propietarios de las mascotas |
@@ -131,6 +137,7 @@ Las tablas `documentos` y `calculos_anestesia` utilizan columnas de tipo `JSON` 
 ## Instalación
 
 ### Requisitos Previos
+
 - Python 3.10+
 - MySQL Server 8.0+
 
@@ -163,13 +170,13 @@ cp .env.example .env
 python app.py
 ```
 
-Acceder en el navegador: **http://localhost:5000**
+Acceder en el navegador: <http://localhost:5000>
 
 ---
 
 ## Estructura del Proyecto
 
-```
+```text
 PartenVet/
 ├── app.py                  # Aplicación Flask principal (rutas, API, sesiones)
 ├── requirements.txt        # Dependencias Python
@@ -207,7 +214,7 @@ PartenVet/
 ## Objetivos Académicos Cumplidos
 
 | Criterio IPLACEX | Implementación |
-|---|---|
+| --- | --- |
 | Framework web (Flask) | ✅ Rutas, plantillas Jinja2, sesiones |
 | Base de datos relacional (MySQL) | ✅ Esquema normalizado, FK, timestamps |
 | CSS propio (sin Bootstrap) | ✅ Sistema de design tokens con variables CSS |
@@ -225,4 +232,4 @@ PartenVet/
 
 ---
 
-*PartenVet © 2026 – Proyecto de Titulación IPLACEX*
+PartenVet © 2026 – Proyecto de Titulación IPLACEX
