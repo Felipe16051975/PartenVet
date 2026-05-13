@@ -26,7 +26,8 @@
         </div>
     </div>
 
-    <!-- Módulos Principales (Launcher) -->
+    <!-- Módulos Principales (Launcher) - Solo para Administradores -->
+    {% if session.get('user_role') == 'admin' %}
     <section class="modules-grid">
         <!-- Tarjeta VetScribe -->
         <a href="{{ url_for('vetscribe_module') }}" class="module-card vetscribe-card">
@@ -60,6 +61,7 @@
             </div>
         </a>
     </section>
+    {% endif %}
 
     <!-- Base de Datos Clínica -->
     <section class="clinical-db-section">

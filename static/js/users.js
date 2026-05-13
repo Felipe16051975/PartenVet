@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 nombre: document.getElementById('userName').value.trim(),
                 correo: document.getElementById('userEmail').value.trim(),
                 password: document.getElementById('userPassword').value,
-                rol_id: parseInt(document.getElementById('userRole').value)
+                role: document.getElementById('userRole').value
             };
 
             try {

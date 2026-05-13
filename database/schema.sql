@@ -1,34 +1,16 @@
 -- PartenVet — Esquema de base de datos
--- Versión 1.0 | Proyecto de Titulación IPLACEX
+-- Versión 1.1 | Proyecto de Titulación IPLACEX
 --
--- Uso con MySQL:
---   CREATE DATABASE IF NOT EXISTS partenvet_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
---   USE partenvet_db;
---   SOURCE database/schema.sql;
---
--- Con SQLite la aplicación convierte la sintaxis automáticamente.
 
-
--- Roles de usuario
-CREATE TABLE IF NOT EXISTS roles (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    nombre      VARCHAR(50)  NOT NULL UNIQUE,
-    descripcion VARCHAR(255),
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Usuarios del sistema
-CREATE TABLE IF NOT EXISTS usuarios (
-    id_usuario    INT AUTO_INCREMENT PRIMARY KEY,
-    nombre        VARCHAR(100) NOT NULL,
-    correo        VARCHAR(100) NOT NULL UNIQUE,
+-- Usuarios del sistema (Estructura requerida para defensa)
+CREATE TABLE IF NOT EXISTS users (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    name          VARCHAR(100) NOT NULL,
+    email         VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    rol_id        INT          NOT NULL,
-    estado        ENUM('activo', 'inactivo') DEFAULT 'activo',
+    role          VARCHAR(20)  NOT NULL, -- 'admin', 'assistant'
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE RESTRICT
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Tutores (propietarios)
@@ -71,7 +53,7 @@ CREATE TABLE IF NOT EXISTS historial (
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE,
-    FOREIGN KEY (usuario_id)  REFERENCES usuarios(id_usuario) ON DELETE RESTRICT
+    FOREIGN KEY (usuario_id)  REFERENCES users(id) ON DELETE RESTRICT
 );
 
 -- Documentos generados por VetScribe
@@ -86,7 +68,7 @@ CREATE TABLE IF NOT EXISTS documentos (
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE,
-    FOREIGN KEY (usuario_id)  REFERENCES usuarios(id_usuario) ON DELETE RESTRICT
+    FOREIGN KEY (usuario_id)  REFERENCES users(id) ON DELETE RESTRICT
 );
 
 -- Protocolos anestésicos generados por SafeAnesthesia
@@ -101,7 +83,7 @@ CREATE TABLE IF NOT EXISTS calculos_anestesia (
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE,
-    FOREIGN KEY (usuario_id)  REFERENCES usuarios(id_usuario) ON DELETE RESTRICT
+    FOREIGN KEY (usuario_id)  REFERENCES users(id) ON DELETE RESTRICT
 );
 
 -- Log de accesos y acciones
@@ -113,14 +95,8 @@ CREATE TABLE IF NOT EXISTS logs_sistema (
     ip_origen   VARCHAR(45),            -- IPv4 e IPv6
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
+    FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE SET NULL
 );
-
-
--- Roles iniciales
-INSERT IGNORE INTO roles (nombre, descripcion) VALUES
-    ('Administrador Veterinario', 'Acceso total al sistema'),
-    ('Usuario Asistente', 'Acceso limitado: pacientes e historial');
 
 -- Índices
 CREATE INDEX idx_pacientes_tutor   ON pacientes(tutor_id);
@@ -130,12 +106,14 @@ CREATE INDEX idx_calculos_paciente  ON calculos_anestesia(paciente_id);
 CREATE INDEX idx_logs_usuario       ON logs_sistema(usuario_id);
 CREATE INDEX idx_logs_accion        ON logs_sistema(accion);
 
--- Usuarios de demostración (contraseña: admin123)
--- Hash generado con werkzeug.security.generate_password_hash('admin123')
-INSERT IGNORE INTO usuarios (nombre, correo, password_hash, rol_id) VALUES
-    ('Dr. Administrador', 'admin@partenvet.cl',
-     'scrypt:32768:8:1$mSxpZFq812xZVYZ9$5b827c2477dd850a68fb38b3c1555ec86a1d4d7d4a0090984cb824252f8c1c7d88b90529c62c082e023e419e14b4cc90a42cb91ffe55ca9cf6775d8469467442',
-     (SELECT id FROM roles WHERE nombre = 'Administrador Veterinario')),
+-- Usuarios de demostración (admin123 / asistente123)
+-- Generados con generate_password_hash
+INSERT IGNORE INTO users (name, email, password_hash, role) VALUES
+    ('Administrador Veterinario', 'admin@partenvet.cl',
+     'scrypt:32768:8:1$deientmJh8o0YEwb$7aa77a4d6133b5766c13c686ae53f510b11d607cd786d08933308fb40b70b249a50dacdd5336e6464a1bc8c9d0f557c078262edc01f38c6ac0fe65254408e1c7',
+     'admin'),
     ('Asistente Clínico', 'asistente@partenvet.cl',
-     'scrypt:32768:8:1$mSxpZFq812xZVYZ9$5b827c2477dd850a68fb38b3c1555ec86a1d4d7d4a0090984cb824252f8c1c7d88b90529c62c082e023e419e14b4cc90a42cb91ffe55ca9cf6775d8469467442',
-     (SELECT id FROM roles WHERE nombre = 'Usuario Asistente'));
+     'scrypt:32768:8:1$dmiM1anJDtdYYNOJ$da9e75cc1e3bb75f1ba164704ba029f0bc181d8505da782a4f4012aa828a7aa650e05ca220dcef9c43b5d80afb6373c8e6984c0fad2a7297f143ddde81503ef3',
+     'assistant');
+
+

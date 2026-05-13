@@ -121,11 +121,13 @@ def login_required(f):
 
 
 def admin_required(f):
-    """Requiere rol de Administrador Veterinario."""
+    """Requiere rol de admin. Redirige si es acceso por URL, retorna JSON si es API."""
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if "usuario" not in session or session.get("rol") != "Administrador Veterinario":
-            return jsonify({"success": False, "message": "Acceso restringido"}), 403
+        if "usuario" not in session or session.get("user_role") != "admin":
+            if request.path.startswith('/api/'):
+                return jsonify({"success": False, "message": "Acceso restringido: se requiere perfil Administrador"}), 403
+            return redirect(url_for("dashboard"))
         return f(*args, **kwargs)
     return wrapper
 
@@ -174,12 +176,14 @@ def historial():
 
 @app.route("/vetscribe")
 @login_required
+@admin_required
 def vetscribe_module():
     return render_template("modules/vetscribe.html")
 
 
 @app.route("/safe-anesthesia")
 @login_required
+@admin_required
 def safeanesth_module():
     return render_template("modules/safeanesth.html")
 
@@ -205,10 +209,9 @@ def api_login():
         return jsonify({"success": False, "message": "Faltan credenciales"}), 400
 
     query = """
-        SELECT u.id_usuario, u.nombre, u.password_hash, r.nombre as rol
-        FROM usuarios u
-        JOIN roles r ON u.rol_id = r.id
-        WHERE u.correo = %s AND u.estado = 'activo'
+        SELECT id, name, password_hash, role
+        FROM users
+        WHERE email = %s
     """
     users = execute_query(query, (data["correo"],), fetch=True)
 
@@ -222,20 +225,21 @@ def api_login():
 
     usuario = users[0]
     session["usuario"]    = data["correo"]
-    session["usuario_id"] = usuario["id_usuario"]
-    session["nombre"]     = usuario["nombre"]
-    session["rol"]        = usuario["rol"]
+    session["usuario_id"] = usuario["id"]
+    session["nombre"]     = usuario["name"]
+    session["rol"]        = "Administrador Veterinario" if usuario["role"] == "admin" else "Asistente Clínico"
+    session["user_role"]  = usuario["role"]
 
     execute_query(
         "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
-        (usuario["id_usuario"], "INICIO_SESION", f"Login: {data['correo']}", request.remote_addr),
+        (usuario["id"], "INICIO_SESION", f"Login: {data['correo']}", request.remote_addr),
         commit=True
     )
 
     return jsonify({
         "success": True,
         "message": "Login exitoso",
-        "usuario": {"nombre": session["nombre"], "rol": session["rol"]}
+        "usuario": {"nombre": session["nombre"], "rol": session["rol"], "role": session["user_role"]}
     })
 
 
@@ -247,8 +251,11 @@ def api_login():
 @login_required
 @admin_required
 def get_roles():
-    query = "SELECT id, nombre, descripcion FROM roles"
-    roles = execute_query(query, fetch=True)
+    # Retornar roles estáticos según requerimiento
+    roles = [
+        {"id": "admin", "nombre": "Administrador Veterinario"},
+        {"id": "assistant", "nombre": "Asistente Clínico"}
+    ]
     return jsonify({"success": True, "data": roles})
 
 
@@ -257,10 +264,11 @@ def get_roles():
 @admin_required
 def get_usuarios():
     query = """
-        SELECT u.id_usuario as id, u.nombre, u.correo, u.estado, r.nombre as rol, u.rol_id
-        FROM usuarios u
-        JOIN roles r ON u.rol_id = r.id
-        ORDER BY u.id_usuario DESC
+        SELECT id, name as nombre, email as correo, 
+               CASE WHEN role = 'admin' THEN 'Administrador Veterinario' ELSE 'Asistente Clínico' END as rol,
+               role
+        FROM users
+        ORDER BY id DESC
     """
     usuarios = execute_query(query, fetch=True)
     return jsonify({"success": True, "data": usuarios})
@@ -274,19 +282,19 @@ def create_usuario():
     nombre = data.get("nombre")
     correo = data.get("correo")
     password = data.get("password")
-    rol_id = data.get("rol_id")
+    rol = data.get("rol") or data.get("role") or "assistant"
     
-    if not all([nombre, correo, password, rol_id]):
+    if not all([nombre, correo, password, rol]):
         return jsonify({"success": False, "message": "Todos los campos son obligatorios"}), 400
         
     pwd_hash = generate_password_hash(password)
-    query = "INSERT INTO usuarios (nombre, correo, password_hash, rol_id) VALUES (%s, %s, %s, %s)"
-    res = execute_query(query, (nombre, correo, pwd_hash, rol_id), commit=True)
+    query = "INSERT INTO users (name, email, password_hash, role) VALUES (%s, %s, %s, %s)"
+    res = execute_query(query, (nombre, correo, pwd_hash, rol), commit=True)
     
     if res:
         return jsonify({"success": True, "message": "Usuario creado exitosamente"})
     else:
-        return jsonify({"success": False, "message": "Error al crear usuario (¿correo duplicado?)"}), 400
+        return jsonify({"success": False, "message": "Error al crear usuario"}), 400
 
 
 @app.route("/api/usuarios/<int:id>", methods=["DELETE"])
@@ -296,7 +304,7 @@ def delete_usuario(id):
     if id == session.get("usuario_id"):
         return jsonify({"success": False, "message": "No puedes eliminar tu propio usuario"}), 400
         
-    query = "DELETE FROM usuarios WHERE id_usuario = %s"
+    query = "DELETE FROM users WHERE id = %s"
     res = execute_query(query, (id,), commit=True)
     if res:
         return jsonify({"success": True, "message": "Usuario eliminado"})
@@ -486,9 +494,9 @@ def api_save_calculo_anestesia():
 @admin_required
 def api_get_logs():
     logs = execute_query(
-        """SELECT l.*, u.nombre as usuario_nombre
+        """SELECT l.*, u.name as usuario_nombre
            FROM logs_sistema l
-           LEFT JOIN usuarios u ON l.usuario_id = u.id_usuario
+           LEFT JOIN users u ON l.usuario_id = u.id
            ORDER BY l.created_at DESC LIMIT 50""",
         fetch=True
     )
