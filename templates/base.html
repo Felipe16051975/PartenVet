@@ -34,7 +34,7 @@
                 <a href="{{ url_for('pacientes_list') }}" class="nav-item {% if '/pacientes' in request.path %}active{% endif %}">Base Clínica</a>
                 {% if session.get('user_role') == 'admin' %}
                 <a href="{{ url_for('users_management') }}" class="nav-item {% if '/usuarios' in request.path %}active{% endif %}">Gestión de Usuarios</a>
-                <a href="#" onclick="alert('Historial de Auditoría del Sistema\n\n- LOGIN_SUCCESS: admin@partenvet.cl\n- GEN_PDF: asistente@partenvet.cl\n- DB_BACKUP: completado'); return false;" class="nav-item audit-link">🛡️ Auditoría</a>
+                <a href="{{ url_for('audit_logs') }}" class="nav-item audit-link {% if '/auditoria' in request.path %}active{% endif %}">🛡️ Auditoría</a>
                 {% endif %}
                 <a href="{{ url_for('logout') }}" class="nav-item logout-btn">Cerrar Sesión</a>
             </nav>

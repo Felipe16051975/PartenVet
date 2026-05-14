@@ -201,6 +201,13 @@ def users_management():
     return render_template("users/management.html")
 
 
+@app.route("/auditoria")
+@login_required
+@admin_required
+def audit_logs():
+    return render_template("audit/logs.html")
+
+
 
 
 
