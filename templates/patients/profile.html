@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil del Paciente - PartenVet{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-header { background: white; padding: 2rem; border-radius: 12px; box-shadow: var(--box-shadow-sm); margin-bottom: 2rem; display: flex; align-items: center; gap: 2rem; border-left: 5px solid var(--primary-color); }
+    .patient-avatar { width: 80px; height: 80px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--primary-color); }
+    .patient-info h2 { margin: 0; color: var(--secondary-color); }
+    .patient-meta { display: flex; gap: 1.5rem; color: #64748b; font-size: 0.9rem; margin-top: 0.5rem; }
+    
+    .history-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .history-section { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--box-shadow-sm); }
+    .section-title { font-size: 1.1rem; font-weight: 700; color: var(--secondary-color); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.75rem; }
+    
+    .history-item { padding: 1rem; border-radius: 8px; border: 1px solid #f1f5f9; margin-bottom: 1rem; transition: all 0.2s; }
+    .history-item:hover { border-color: var(--primary-color); background: #f8fafc; }
+    .item-date { font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.25rem; }
+    .item-title { font-weight: 600; color: var(--secondary-color); }
+    .item-detail { font-size: 0.85rem; color: #64748b; margin-top: 0.5rem; }
+    
+    .badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+    .badge-recipe { background: #dcfce7; color: #166534; }
+    .badge-anesth { background: #fee2e2; color: #991b1b; }
+    
+    .no-data { text-align: center; color: #94a3b8; padding: 2rem; font-style: italic; }
+    .back-nav { display: flex; align-items: center; gap: 1rem; }
+    .btn-back { padding: 0.5rem; }
+    
+    /* Modal Styles */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+    .modal-content { background: white; margin: 5% auto; padding: 2rem; border-radius: 12px; width: 60%; max-width: 800px; box-shadow: var(--box-shadow-lg); position: relative; max-height: 85vh; overflow-y: auto; }
+    .close-modal { position: absolute; right: 1.5rem; top: 1rem; font-size: 1.5rem; cursor: pointer; color: #64748b; }
+    .modal-header { border-bottom: 1px solid #f1f5f9; margin-bottom: 1.5rem; padding-bottom: 1rem; }
+    .modal-subtitle { color: #64748b; font-size: 0.9rem; }
+    .modal-body { line-height: 1.6; color: #334155; }
+    
+    .btn-download { background: var(--primary-color); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 500; margin-top: 1rem; }
+    .btn-download:hover { background: var(--primary-dark); }
+    .btn-view { padding: 0.3rem 0.6rem; font-size: 0.75rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+    .btn-view:hover { background: #e2e8f0; }
+</style>
+<!-- PDF Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container db-container">
+    <div class="page-header">
+        <div class="back-nav">
+            <a href="/pacientes" class="btn-secondary btn-back">← Volver</a>
+            <h2>Expediente Clínico Digital</h2>
+        </div>
+        <div class="actions">
+            {% if session.get('user_role') == 'admin' %}
+            <a href="/vetscribe?paciente_id={{ id }}" class="btn-primary">Nueva Receta</a>
+            <a href="/safe-anesthesia?paciente_id={{ id }}" class="btn-secondary">Nuevo Protocolo</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="profile-header">
+        <div class="patient-avatar">🐾</div>
+        <div class="patient-info">
+            <h2 id="patientName">Cargando...</h2>
+            <div class="patient-meta">
+                <span id="patientSpecies">--</span>
+                <span id="patientBreed">--</span>
+                <span id="patientWeight">-- kg</span>
+                <span id="tutorName">Tutor: --</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="history-grid">
+        <!-- Recetas y Documentos -->
+        <div class="history-section">
+            <h3 class="section-title">📄 Historial de Recetas y Certificados</h3>
+            <div id="docsHistory" class="history-list">
+                <div class="no-data">Cargando documentos...</div>
+            </div>
+        </div>
+
+        <!-- Protocolos Anestésicos -->
+        <div class="history-section">
+            <h3 class="section-title">💉 Protocolos Anestésicos (SafeAnesth)</h3>
+            <div id="anesthHistory" class="history-list">
+                <div class="no-data">Cargando protocolos...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para vista previa -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div id="modalHeader" class="modal-header">
+                <h3 id="modalTitle">Vista Previa</h3>
+                <p id="modalSubtitle" class="modal-subtitle"></p>
+            </div>
+            <div id="modalBody" class="modal-body">
+                <!-- Contenido dinámico -->
+            </div>
+            <div id="modalFooter" class="modal-footer">
+                <button id="downloadBtn" class="btn-download">
+                    <span>📥 Descargar PDF</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const patientId = parseInt("{{ id }}");
+    
+    document.addEventListener('DOMContentLoaded', async () => {
+        loadPatientData();
+        loadDocuments();
+        loadAnesthesia();
+    });
+
+    async function loadPatientData() {
+        try {
+            const res = await fetchAPI(`/pacientes/${patientId}`);
+            if (res.success) {
+                const p = res.data;
+                document.getElementById('patientName').textContent = p.nombre;
+                document.getElementById('patientSpecies').textContent = p.especie;
+                document.getElementById('patientBreed').textContent = p.raza || 'Sin raza';
+                document.getElementById('patientWeight').textContent = (p.peso_actual || 0) + ' kg';
+                document.getElementById('tutorName').textContent = `Tutor: ${p.tutor_nombres} ${p.tutor_apellidos}`;
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    let currentDocs = [];
+    let currentCalcs = [];
+
+    async function loadDocuments() {
+        const container = document.getElementById('docsHistory');
+        try {
+            const res = await fetchAPI(`/pacientes/${patientId}/documentos`);
+            if (res.success && res.data.length > 0) {
+                currentDocs = res.data;
+                container.innerHTML = '';
+                res.data.forEach((doc, index) => {
+                    const content = JSON.parse(doc.contenido_json);
+                    const date = new Date(doc.created_at).toLocaleDateString();
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    
+                    let medsHtml = '';
+                    if (content.medications) {
+                        medsHtml = content.medications.map(m => `• ${m.name}`).join(', ');
+                    }
+                    
+                    item.innerHTML = `
+                        <div class="item-date">${date}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="item-title">${doc.tipo_documento}</span>
+                            <button onclick="openDocPreview(${index})" class="btn-view">Ver / PDF</button>
+                        </div>
+                        <div class="item-detail" style="font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${medsHtml || 'Certificado'}
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            } else {
+                container.innerHTML = '<div class="no-data">No hay documentos registrados aún.</div>';
+            }
+        } catch (e) { 
+            container.innerHTML = '<div class="no-data">Error al cargar documentos.</div>';
+        }
+    }
+
+    async function loadAnesthesia() {
+        const container = document.getElementById('anesthHistory');
+        try {
+            const res = await fetchAPI(`/pacientes/${patientId}/calculos`);
+            if (res.success && res.data.length > 0) {
+                currentCalcs = res.data;
+                container.innerHTML = '';
+                res.data.forEach((calc, index) => {
+                    const protocol = JSON.parse(calc.protocolo_json);
+                    const date = new Date(calc.created_at).toLocaleDateString();
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    
+                    item.innerHTML = `
+                        <div class="item-date">${date}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="item-title">Protocolo ASA ${calc.riesgo_asa}</span>
+                            <button onclick="openAnesthPreview(${index})" class="btn-view">Ver / PDF</button>
+                        </div>
+                        <div class="item-detail">
+                            ${calc.peso_utilizado} kg | Inducción: ${protocol.induccion || 'N/A'}
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            } else {
+                container.innerHTML = '<div class="no-data">No hay protocolos registrados aún.</div>';
+            }
+        } catch (e) { 
+            container.innerHTML = '<div class="no-data">Error al cargar protocolos.</div>';
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('previewModal').style.display = 'none';
+    }
+
+    function openDocPreview(index) {
+        const doc = currentDocs[index];
+        const content = JSON.parse(doc.contenido_json);
+        const modal = document.getElementById('previewModal');
+        const body = document.getElementById('modalBody');
+        
+        document.getElementById('modalTitle').textContent = doc.tipo_documento;
+        document.getElementById('modalSubtitle').textContent = `Fecha: ${new Date(doc.created_at).toLocaleString()}`;
+        
+        let html = `<h4>Paciente: ${document.getElementById('patientName').textContent}</h4>`;
+        
+        if (content.medications) {
+            html += '<h5>Medicamentos:</h5><ul>';
+            content.medications.forEach(m => {
+                html += `<li><strong>${m.name}</strong>: ${m.dose} - ${m.instructions || ''}</li>`;
+            });
+            html += '</ul>';
+        }
+        
+        if (content.diagnosis) {
+            html += `<h5>Diagnóstico/Observaciones:</h5><p>${content.diagnosis}</p>`;
+        }
+        
+        body.innerHTML = html;
+        modal.style.display = 'block';
+        
+        document.getElementById('downloadBtn').onclick = () => downloadDocPDF(doc);
+    }
+
+    function openAnesthPreview(index) {
+        const calc = currentCalcs[index];
+        const protocol = JSON.parse(calc.protocolo_json);
+        const modal = document.getElementById('previewModal');
+        const body = document.getElementById('modalBody');
+        
+        document.getElementById('modalTitle').textContent = `Protocolo Anestésico ASA ${calc.riesgo_asa}`;
+        document.getElementById('modalSubtitle').textContent = `Fecha: ${new Date(calc.created_at).toLocaleString()}`;
+        
+        let html = `<h4>Paciente: ${document.getElementById('patientName').textContent} (${calc.peso_utilizado} kg)</h4>`;
+        
+        if (protocol.medications) {
+            html += '<h5>Premedicación:</h5><ul>';
+            (protocol.results.premedication || []).forEach(m => {
+                html += `<li>${m.name}: ${m.dose} mg/kg -> ${m.totalMl} ml</li>`;
+            });
+            html += '</ul>';
+            
+            html += '<h5>Inducción:</h5><ul>';
+            (protocol.results.induction || []).forEach(m => {
+                html += `<li>${m.name}: ${m.dose} mg/kg -> ${m.totalMl} ml</li>`;
+            });
+            html += '</ul>';
+        }
+        
+        body.innerHTML = html;
+        modal.style.display = 'block';
+        
+        document.getElementById('downloadBtn').onclick = () => downloadAnesthPDF(calc);
+    }
+
+    function downloadDocPDF(docData) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const content = JSON.parse(docData.contenido_json);
+        const patientName = document.getElementById('patientName').textContent;
+        const margin = 20;
+        
+        // Estilo Premium (Igual a VetScribe)
+        doc.setFillColor(37, 99, 235);
+        doc.rect(0, 0, 210, 40, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont("helvetica", "bold");
+        doc.text("RECETA MEDICA VETERINARIA", 105, 25, { align: "center" });
+        
+        doc.setTextColor(50);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        let y = 50;
+        
+        doc.setFont("helvetica", "bold");
+        doc.text("PACIENTE:", margin, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${patientName} (${document.getElementById('patientSpecies').textContent})`, margin + 25, y);
+        y += 7;
+        doc.setFont("helvetica", "bold");
+        doc.text("FECHA:", margin, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(new Date(docData.created_at).toLocaleDateString(), margin + 25, y);
+        
+        y = 75;
+        doc.setFontSize(20);
+        doc.setTextColor(37, 99, 235);
+        doc.text("Rx", margin, y);
+        
+        y += 10;
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(11);
+        
+        if (content.medications) {
+            content.medications.forEach((m, i) => {
+                doc.setFont("helvetica", "bold");
+                doc.text(`${i + 1}. ${m.name}`, margin, y);
+                y += 6;
+                doc.setFont("helvetica", "normal");
+                doc.text(`   ${m.dose || ''} ${m.instructions || m.dur || ''}`, margin, y);
+                y += 10;
+                if (y > 250) { doc.addPage(); y = 20; }
+            });
+        }
+        
+        if (content.recommendations || content.diagnosis) {
+            y += 5;
+            doc.setFont("helvetica", "bold");
+            doc.text("INDICACIONES Y OBSERVACIONES:", margin, y);
+            y += 7;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            const text = content.recommendations || content.diagnosis;
+            const splitText = doc.splitTextToSize(text, 170);
+            doc.text(splitText, margin, y);
+            y += (splitText.length * 5) + 10;
+        }
+
+        if (content.followUp && content.followUp.date) {
+            doc.setFillColor(239, 246, 255);
+            doc.rect(margin, y, 170, 15, "F");
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(29, 78, 216);
+            doc.text(`PRÓXIMO CONTROL: ${content.followUp.date} · Motivo: ${content.followUp.reason || 'Control'}`, margin + 5, y + 9);
+        }
+        
+        doc.setTextColor(150);
+        doc.setFontSize(8);
+        doc.text("Documento electrónico generado por PartenVet (Historial).", 105, 285, { align: "center" });
+        
+        doc.save(`Receta_${patientName.replace(/\s+/g, '_')}_${docData.id}.pdf`);
+    }
+
+    function downloadAnesthPDF(calc) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const protocol = JSON.parse(calc.protocolo_json);
+        const patientName = document.getElementById('patientName').textContent;
+        const margin = 20;
+        
+        // Estilo SafeAnesthesia Oficial
+        doc.setFillColor(13, 148, 136); // Teal color de SafeAnesth
+        doc.rect(0, 0, 210, 40, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont("helvetica", "bold");
+        doc.text("PROTOCOLO ANESTESICO SEGURO", 105, 25, { align: "center" });
+        
+        doc.setTextColor(50);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        let y = 50;
+        
+        doc.setFont("helvetica", "bold");
+        doc.text("PACIENTE:", margin, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${patientName} · Peso: ${calc.peso_utilizado} kg`, margin + 25, y);
+        y += 7;
+        doc.setFont("helvetica", "bold");
+        doc.text("RIESGO ASA:", margin, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${calc.riesgo_asa}`, margin + 25, y);
+        
+        y = 75;
+        doc.setFontSize(14);
+        doc.setTextColor(13, 148, 136);
+        doc.text("DETALLE DEL PROTOCOLO", margin, y);
+        y += 10;
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        
+        const renderPhase = (title, items) => {
+            if (!items || items.length === 0) return;
+            doc.setFont("helvetica", "bold");
+            doc.text(title, margin, y);
+            y += 7;
+            doc.setFont("helvetica", "normal");
+            items.forEach(m => {
+                doc.text(`• ${m.name}: ${m.dose} mg/kg -> ${m.totalMl} ml`, margin + 5, y);
+                y += 6;
+            });
+            y += 5;
+        };
+
+        renderPhase("1. PREMEDICACIÓN", protocol.results.premedication);
+        renderPhase("2. INDUCCIÓN", protocol.results.induction);
+        renderPhase("3. MANTENIMIENTO", protocol.results.maintenance);
+
+        if (protocol.block && protocol.block.volume > 0) {
+            doc.setFont("helvetica", "bold");
+            doc.text("BLOQUEO REGIONAL:", margin, y);
+            y += 7;
+            doc.setFont("helvetica", "normal");
+            doc.text(`${protocol.block.agent}: ${protocol.block.volume} ml`, margin + 5, y);
+            y += 10;
+        }
+
+        if (protocol.blockReasons && protocol.blockReasons.length > 0) {
+            doc.setTextColor(185, 28, 28);
+            doc.setFont("helvetica", "bold");
+            doc.text("AVISOS DE SEGURIDAD CLINICA:", margin, y);
+            y += 7;
+            doc.setFontSize(8);
+            protocol.blockReasons.forEach(r => {
+                const splitR = doc.splitTextToSize(r, 170);
+                doc.text(splitR, margin + 5, y);
+                y += (splitR.length * 4) + 2;
+            });
+        }
+        
+        doc.setTextColor(150);
+        doc.setFontSize(8);
+        doc.text("Generado por CASS Motor ( SafeAnesthesia / PartenVet )", 105, 285, { align: "center" });
+        
+        doc.save(`Protocolo_${patientName.replace(/\s+/g, '_')}_${calc.id}.pdf`);
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('previewModal');
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+</script>
+{% endblock %}

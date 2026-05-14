@@ -174,6 +174,12 @@ def historial():
     return render_template("patients/list.html")
 
 
+@app.route("/pacientes/<int:id>/perfil")
+@login_required
+def paciente_perfil(id):
+    return render_template("patients/profile.html", id=id)
+
+
 @app.route("/vetscribe")
 @login_required
 @admin_required
@@ -266,7 +272,7 @@ def get_usuarios():
     query = """
         SELECT id, name as nombre, email as correo, 
                CASE WHEN role = 'admin' THEN 'Administrador Veterinario' ELSE 'Asistente Clínico' END as rol,
-               role
+               role, 'activo' as estado
         FROM users
         ORDER BY id DESC
     """
@@ -484,6 +490,22 @@ def api_save_calculo_anestesia():
         return jsonify({"success": True, "message": "Protocolo guardado"}), 201
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/api/pacientes/<int:id>/documentos", methods=["GET"])
+@login_required
+def api_get_paciente_documentos(id):
+    query = "SELECT * FROM documentos WHERE paciente_id = %s ORDER BY created_at DESC"
+    docs = execute_query(query, (id,), fetch=True)
+    return jsonify({"success": True, "data": docs or []})
+
+
+@app.route("/api/pacientes/<int:id>/calculos", methods=["GET"])
+@login_required
+def api_get_paciente_calculos(id):
+    query = "SELECT * FROM calculos_anestesia WHERE paciente_id = %s ORDER BY created_at DESC"
+    calcs = execute_query(query, (id,), fetch=True)
+    return jsonify({"success": True, "data": calcs or []})
 
 
 # ---------------------------------------------------------------------------

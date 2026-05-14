@@ -37,6 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPatients(patients) {
+        const userInfo = JSON.parse(localStorage.getItem('partenvet_user') || '{}');
+        const isAdmin = userInfo.role === 'admin';
+        
         tableBody.innerHTML = '';
         patients.forEach(p => {
             const tr = document.createElement('tr');
@@ -48,9 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="action-links">
                     <button onclick="selectPatient(${p.id}, '${p.nombre}')" class="btn-primary" style="padding:0.4rem 0.8rem;font-size:0.8rem;margin-bottom:0.3rem;width:100%;">⚡ Iniciar Consulta</button>
                     <div style="display:flex;gap:0.2rem;margin-bottom:0.3rem;">
+                        <a href="/pacientes/${p.id}/perfil" class="btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem;flex:1;text-align:center;background:var(--primary-color);color:white;border:none;">Ver Historial</a>
+                    </div>
+                    ${isAdmin ? `
+                    <div style="display:flex;gap:0.2rem;margin-bottom:0.3rem;">
                         <a href="/vetscribe?paciente_id=${p.id}" class="btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem;flex:1;text-align:center;">VetScribe</a>
                         <a href="/safe-anesthesia?paciente_id=${p.id}" class="btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem;flex:1;text-align:center;">SafeAnesth</a>
                     </div>
+                    ` : ''}
                     <div style="display:flex;gap:0.2rem;">
                         <button onclick="editPatient(${p.id})" class="btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem;flex:1;background:#94a3b8;">Editar</button>
                         <button onclick="deletePatient(${p.id}, '${p.nombre}')" class="btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem;flex:1;background:#f87171;color:white;">Eliminar</button>

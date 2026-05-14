@@ -79,8 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${u.correo}</td>
                 <td><span style="background: #e2e8f0; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">${u.rol}</span></td>
                 <td>
-                    <span style="color: ${u.estado === 'activo' ? '#059669' : '#dc2626'}; font-weight: 500;">
-                        ${u.estado.toUpperCase()}
+                    <span style="color: ${(u.estado || 'activo') === 'activo' ? '#059669' : '#dc2626'}; font-weight: 500;">
+                        ${(u.estado || 'activo').toUpperCase()}
                     </span>
                 </td>
                 <td>

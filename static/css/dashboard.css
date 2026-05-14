@@ -318,3 +318,11 @@ legend {
     color: var(--secondary-color) !important;
     border: none !important;
 }
+
+.badge-info {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}

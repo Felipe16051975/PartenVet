@@ -21,8 +21,12 @@
             <strong id="activePatientName" class="active-patient-name">Firulais</strong> · <span id="activePatientDetails">Canino (10 kg)</span>
         </div>
         <div class="active-patient-actions">
+            {% if session.get('user_role') == 'admin' %}
             <a href="/safe-anesthesia" class="btn-primary btn-white">Ir a SafeAnesth</a>
             <a href="/vetscribe" class="btn-primary btn-white">Ir a VetScribe</a>
+            {% else %}
+            <span class="badge badge-info">Consulta en progreso</span>
+            {% endif %}
         </div>
     </div>
 
