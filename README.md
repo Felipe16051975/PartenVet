@@ -5,6 +5,25 @@
 
 ---
 
+## Acceso a la aplicación alojada
+
+URL Hosting:
+[PEGAR AQUÍ LINK DEL HOSTING]
+
+## Credenciales de demostración
+
+**Administrador Veterinario:**
+- **Email:** admin@partenvet.cl
+- **Contraseña:** admin123
+- **Permisos:** acceso completo, VetScribe, SafeAnesthesia, usuarios y auditoría.
+
+**Asistente Clínico:**
+- **Email:** asistente@partenvet.cl
+- **Contraseña:** asistente123
+- **Permisos:** base clínica, registro/búsqueda de pacientes e historial básico.
+
+---
+
 ## Descripción
 
 **PartenVet** es una plataforma web modular para apoyo clínico veterinario. Funciona como un panel centralizado de acceso (*Launcher Clínico*) que integra dos módulos especializados bajo una arquitectura común:
@@ -41,7 +60,7 @@ Ambos módulos comparten una **base de datos clínica única**, un **sistema de 
 
 | Capa | Tecnología |
 | --- | --- |
-| Backend | Python 3.x + Flask |
+| Backend | Python 3.10+ + Flask |
 | Base de Datos | MySQL (via `mysql-connector-python`) con Fallback a SQLite |
 | Frontend | HTML5, CSS3, Vanilla JavaScript |
 | Templating | Jinja2 (integrado en Flask) |
@@ -54,18 +73,14 @@ Ambos módulos comparten una **base de datos clínica única**, un **sistema de 
 ## Módulos Integrados
 
 ### 📝 VetScribe
-
 Módulo de documentación clínica integrado como vista nativa de Flask. Permite:
-
 - Seleccionar paciente desde la base clínica común.
 - Construir y gestionar recetas médicas con lista de medicamentos.
 - Generar recetas y certificados en formato PDF (via `jsPDF`).
 - Guardar el documento en el historial clínico del paciente.
 
 ### 💉 SafeAnesthesia
-
 Módulo de cálculo anestésico integrado como vista nativa de Flask. Permite:
-
 - Seleccionar paciente y autocompletar especie.
 - Calcular protocolos de premedicación, inducción y mantenimiento TIVA.
 - Aplicar ajustes automáticos de dosis según estado ASA y comorbilidades.
@@ -74,9 +89,7 @@ Módulo de cálculo anestésico integrado como vista nativa de Flask. Permite:
 - Guardar el protocolo en el historial clínico del paciente.
 
 ### 👥 Gestión Clínica (CRUD)
-
 Módulo base de administración que permite:
-
 - Operaciones completas CRUD (Crear, Leer, Actualizar, Eliminar) de pacientes y tutores a través de la API REST.
 - Listado y búsqueda avanzada en la base de datos de pacientes.
 - Módulo de gestión de usuarios para crear, listar y eliminar cuentas del personal clínico (exclusivo para Administrador Veterinario).
@@ -91,29 +104,39 @@ Módulo base de administración que permite:
 | Contraseñas | Hasheadas con `Werkzeug.security.generate_password_hash` |
 | Sesiones | `flask.session` con `SECRET_KEY` desde `.env` |
 | Control de acceso | Decorador `@login_required` en todas las rutas privadas |
-| Roles | Tabla `roles` con perfiles "Administrador Veterinario" y "Usuario Asistente" |
-| Auditoría | Tabla `logs_sistema` registra acciones críticas con IP de origen |
+| Roles (RBAC) | Control de acceso integrado mediante la columna `role` ('admin', 'assistant') en la tabla `users` |
+| Protección | Rutas sensibles protegidas en el backend contra accesos no autorizados |
 | Credenciales | Variables de entorno vía `.env` (nunca hardcodeadas en el código) |
 | API REST | Validaciones de entrada en todos los endpoints; errores SQL no expuestos al cliente |
 
 ---
 
+## Auditoría y Trazabilidad
+
+La plataforma cuenta con un **módulo visual de auditoría** exclusivo para el rol de Administrador. Los eventos registrados en la tabla `logs_sistema` aseguran la trazabilidad de la plataforma, incluyendo:
+- **Usuario responsable** de la acción.
+- **Fecha y hora exacta** del suceso.
+- **Acción realizada** (ej. INICIO_SESION, LOGIN_FALLIDO).
+- **IP de origen** de la petición.
+
+---
+
 ## Base de Datos Clínica
 
-El esquema (`database/schema.sql`) implementa un modelo relacional normalizado:
+El esquema principal de la base de datos se encuentra ubicado en el archivo `database/schema.sql`. Implementa un modelo relacional normalizado con un diseño de **MySQL principal + SQLite fallback**.
 
+### Modelo Relacional (Llaves Primarias y Foráneas)
 ```text
-roles ──< usuarios
-tutores ──< pacientes ──< historial
-                     ──< documentos         (VetScribe)
-                     ──< calculos_anestesia (SafeAnesthesia)
-logs_sistema (auditoría independiente)
+users (PK)
+tutores (PK) ──< pacientes (PK, FK: tutor_id) ──< historial (PK, FK: paciente_id, usuario_id)
+                                              ──< documentos (PK, FK: paciente_id, usuario_id)
+                                              ──< calculos_anestesia (PK, FK: paciente_id, usuario_id)
+logs_sistema (PK, FK: usuario_id)
 ```
 
 | Tabla | Propósito |
 | --- | --- |
-| `roles` | Perfiles de acceso del sistema |
-| `usuarios` | Cuentas del personal clínico |
+| `users` | Cuentas del personal clínico (incluye columna `role`) |
 | `tutores` | Propietarios de las mascotas |
 | `pacientes` | Registro central de animales atendidos |
 | `historial` | Consultas y atenciones clínicas generales |
@@ -121,25 +144,18 @@ logs_sistema (auditoría independiente)
 | `calculos_anestesia` | Protocolos generados por SafeAnesthesia |
 | `logs_sistema` | Auditoría y trazabilidad de seguridad |
 
----
-
-## Preparación para Big Data
-
+### Preparación para Big Data
 Las tablas `documentos` y `calculos_anestesia` utilizan columnas de tipo `JSON` para almacenar los datos estructurados completos de cada evento clínico. Esto permite:
-
 - **Almacenamiento histórico escalable** sin necesidad de alterar el esquema relacional.
-- **Análisis estadístico futuro** sobre protocolos anestésicos más utilizados por especie, raza y ASA.
-- **Minería de datos clínicos** para identificar patrones de tratamiento y prevención.
-- **Integración con herramientas de BI** (Power BI, Tableau) o frameworks de ML (scikit-learn, TensorFlow).
+- **Análisis estadístico futuro** e integración con herramientas de BI (Power BI, Tableau) o frameworks de ML.
 
 ---
 
 ## Instalación
 
 ### Requisitos Previos
-
 - Python 3.10+
-- MySQL Server 8.0+
+- MySQL Server 8.0+ (Opcional gracias al Fallback automático a SQLite)
 
 ### Instalación Paso a Paso
 
@@ -158,15 +174,9 @@ pip install -r requirements.txt
 
 # 4. Configurar variables de entorno
 cp .env.example .env
-# Edite .env con sus credenciales de MySQL
+# Edite .env con sus credenciales de MySQL (o deje en blanco para usar SQLite)
 
-# 5. Crear la base de datos
-# En MySQL Workbench o consola:
-# CREATE DATABASE partenvet_db;
-# USE partenvet_db;
-# SOURCE database/schema.sql;
-
-# 6. Ejecutar la aplicación
+# 5. Ejecutar la aplicación
 python app.py
 ```
 
@@ -184,7 +194,7 @@ PartenVet/
 ├── .gitignore
 ├── README.md
 ├── database/
-│   └── schema.sql          # Esquema completo de la base de datos MySQL
+│   └── schema.sql          # Esquema completo de la base de datos (MySQL/SQLite)
 ├── static/
 │   ├── css/
 │   │   ├── variables.css   # Design tokens globales (colores, espaciado)
@@ -216,13 +226,26 @@ PartenVet/
 | Criterio IPLACEX | Implementación |
 | --- | --- |
 | Framework web (Flask) | ✅ Rutas, plantillas Jinja2, sesiones |
-| Base de datos relacional (MySQL) | ✅ Esquema normalizado, FK, timestamps |
-| CSS propio (sin Bootstrap) | ✅ Sistema de design tokens con variables CSS |
+| Base de datos relacional | ✅ Esquema normalizado, PK/FK, MySQL + SQLite |
+| CSS propio (sin Bootstrap)| ✅ Sistema de design tokens con variables CSS |
 | Modularidad | ✅ VetScribe y SafeAnesthesia como módulos nativos |
-| Ciberseguridad | ✅ Hashing, roles, sesiones, logs, `.env` |
+| Ciberseguridad | ✅ Hashing, RBAC, protección en backend, logs, `.env` |
 | API REST | ✅ Endpoints JSON para pacientes, documentos y cálculos |
-| Integración clínica | ✅ Base de datos y autenticación compartidas |
 | Escalabilidad (Big Data) | ✅ Columnas JSON para análisis futuro |
+
+---
+
+## Checklist de entrega IPLACEX
+
+- [x] Informe final
+- [x] Presentación PPTX
+- [x] Repositorio público
+- [x] Frontend incluido
+- [x] Backend incluido
+- [x] Estructura BD incluida
+- [x] Hosting gratuito
+- [x] Credenciales 2 perfiles
+- [x] README actualizado
 
 ---
 
