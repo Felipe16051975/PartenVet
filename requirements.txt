@@ -15,3 +15,6 @@ python-dotenv==1.0.0
 
 # Seguridad: hashing de contraseñas (incluido con Flask)
 Werkzeug==3.0.1
+
+# Servidor WSGI para despliegue en Render
+gunicorn==21.2.0
