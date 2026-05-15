@@ -7,20 +7,22 @@
 
 ## Acceso a la aplicación alojada
 
-URL Hosting:
-[PEGAR AQUÍ LINK DEL HOSTING]
+URL Hosting gratuito:
+https://partenvet.onrender.com
+
+> **Nota:** El hosting gratuito en Render puede tardar algunos segundos en cargar si la instancia estuvo inactiva.
 
 ## Credenciales de demostración
 
 **Administrador Veterinario:**
 - **Email:** admin@partenvet.cl
 - **Contraseña:** admin123
-- **Permisos:** acceso completo, VetScribe, SafeAnesthesia, usuarios y auditoría.
+- **Permisos:** acceso completo a Dashboard, Base Clínica, VetScribe, SafeAnesthesia, Gestión de Usuarios y Auditoría.
 
 **Asistente Clínico:**
 - **Email:** asistente@partenvet.cl
 - **Contraseña:** asistente123
-- **Permisos:** base clínica, registro/búsqueda de pacientes e historial básico.
+- **Permisos:** acceso limitado a Dashboard, Base Clínica, registro/búsqueda de pacientes e historial básico.
 
 ---
 
