@@ -116,4 +116,12 @@ INSERT IGNORE INTO users (name, email, password_hash, role) VALUES
      'scrypt:32768:8:1$dmiM1anJDtdYYNOJ$da9e75cc1e3bb75f1ba164704ba029f0bc181d8505da782a4f4012aa828a7aa650e05ca220dcef9c43b5d80afb6373c8e6984c0fad2a7297f143ddde81503ef3',
      'assistant');
 
+-- Tutor y Paciente de demostración
+INSERT IGNORE INTO tutores (id, rut_dni, nombres, apellidos, telefono, correo, direccion) VALUES
+    (1, '12345678-9', 'Juan', 'Pérez', '+56912345678', 'juan.perez@example.com', 'Av. Siempre Viva 742');
+
+INSERT IGNORE INTO pacientes (id, tutor_id, nombre, especie, raza, sexo, fecha_nacimiento, peso_actual) VALUES
+    (1, 1, 'Boby', 'Canino', 'Mestizo', 'M', '2020-01-01', 15.5);
+
+
 
