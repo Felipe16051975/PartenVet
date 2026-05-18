@@ -125,6 +125,12 @@ def admin_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if "usuario" not in session or session.get("user_role") != "admin":
+            usuario_id = session.get("usuario_id")
+            execute_query(
+                "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
+                (usuario_id, "ACCESS_DENIED", f"Intento de acceso a ruta restringida: {request.path}", request.remote_addr),
+                commit=True
+            )
             if request.path.startswith('/api/'):
                 return jsonify({"success": False, "message": "Acceso restringido: se requiere perfil Administrador"}), 403
             return redirect(url_for("dashboard"))
@@ -231,7 +237,7 @@ def api_login():
     if not users or not check_password_hash(users[0]["password_hash"], data["password"]):
         execute_query(
             "INSERT INTO logs_sistema (accion, descripcion, ip_origen) VALUES (%s, %s, %s)",
-            ("LOGIN_FALLIDO", f"Intento fallido: {data['correo']}", request.remote_addr),
+            ("LOGIN_FAILED", f"Intento fallido: {data['correo']}", request.remote_addr),
             commit=True
         )
         return jsonify({"success": False, "message": "Credenciales incorrectas"}), 401
@@ -245,7 +251,7 @@ def api_login():
 
     execute_query(
         "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
-        (usuario["id"], "INICIO_SESION", f"Login: {data['correo']}", request.remote_addr),
+        (usuario["id"], "LOGIN_SUCCESS", f"Login: {data['correo']}", request.remote_addr),
         commit=True
     )
 
@@ -305,9 +311,37 @@ def create_usuario():
     res = execute_query(query, (nombre, correo, pwd_hash, rol), commit=True)
     
     if res:
+        execute_query(
+            "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
+            (session.get("usuario_id"), "CREATE_USER", f"Usuario creado: {correo}", request.remote_addr),
+            commit=True
+        )
         return jsonify({"success": True, "message": "Usuario creado exitosamente"})
     else:
         return jsonify({"success": False, "message": "Error al crear usuario"}), 400
+
+
+@app.route("/api/usuarios/<int:id>", methods=["PUT"])
+@login_required
+@admin_required
+def api_update_usuario(id):
+    data = request.get_json()
+    nombre = data.get("nombre")
+    rol = data.get("rol") or data.get("role")
+    
+    if not nombre or not rol:
+        return jsonify({"success": False, "message": "Nombre y rol son obligatorios"}), 400
+        
+    query = "UPDATE users SET name=%s, role=%s WHERE id=%s"
+    res = execute_query(query, (nombre, rol, id), commit=True)
+    if res:
+        execute_query(
+            "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
+            (session.get("usuario_id"), "UPDATE_USER", f"Usuario actualizado ID: {id}", request.remote_addr),
+            commit=True
+        )
+        return jsonify({"success": True, "message": "Usuario actualizado exitosamente"})
+    return jsonify({"success": False, "message": "Error al actualizar usuario"}), 400
 
 
 @app.route("/api/usuarios/<int:id>", methods=["DELETE"])
@@ -320,6 +354,11 @@ def delete_usuario(id):
     query = "DELETE FROM users WHERE id = %s"
     res = execute_query(query, (id,), commit=True)
     if res:
+        execute_query(
+            "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
+            (session.get("usuario_id"), "DELETE_USER", f"Usuario eliminado ID: {id}", request.remote_addr),
+            commit=True
+        )
         return jsonify({"success": True, "message": "Usuario eliminado"})
     return jsonify({"success": False, "message": "Error al eliminar usuario"}), 400
 
@@ -367,12 +406,25 @@ def api_get_paciente(id):
     return jsonify({"success": True, "data": paciente})
 
 
+def _validate_paciente(data):
+    if not data: return "Datos vacíos"
+    if not data.get("nombre_paciente") or not str(data.get("nombre_paciente")).strip(): return "El nombre del paciente es obligatorio."
+    if not data.get("especie") or not str(data.get("especie")).strip(): return "Debe seleccionar una especie."
+    try:
+        peso = float(data.get("peso", 0))
+        if peso <= 0: return "El peso debe ser mayor a 0."
+    except ValueError:
+        return "El peso ingresado no es válido."
+    if not data.get("fecha_nacimiento"): return "La fecha de nacimiento es obligatoria."
+    return None
+
 @app.route("/api/pacientes", methods=["POST"])
 @login_required
 def api_create_paciente():
     data = request.get_json()
-    if not data:
-        return jsonify({"success": False, "message": "Datos vacíos"}), 400
+    err = _validate_paciente(data)
+    if err:
+        return jsonify({"success": False, "message": err}), 400
 
     try:
         execute_query(
@@ -388,6 +440,9 @@ def api_create_paciente():
             "INSERT INTO pacientes (tutor_id, nombre, especie, raza, sexo, fecha_nacimiento, peso_actual) VALUES (%s,%s,%s,%s,%s,%s,%s)",
             (tutor_id, data.get("nombre_paciente"), data.get("especie"), data.get("raza"),
              data.get("sexo"), data.get("fecha_nacimiento"), data.get("peso")),
+        execute_query(
+            "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
+            (session.get("usuario_id"), "SAVE_PATIENT", f"Paciente creado: {data.get('nombre_paciente')}", request.remote_addr),
             commit=True
         )
         return jsonify({"success": True, "message": "Paciente registrado"})
@@ -399,8 +454,9 @@ def api_create_paciente():
 @login_required
 def api_update_paciente(id):
     data = request.get_json()
-    if not data:
-        return jsonify({"success": False, "message": "Datos vacíos"}), 400
+    err = _validate_paciente(data)
+    if err:
+        return jsonify({"success": False, "message": err}), 400
 
     try:
         execute_query(
@@ -418,6 +474,11 @@ def api_update_paciente(id):
                  data.get("telefono_tutor"), data.get("correo_tutor"), data.get("direccion_tutor"), tutor_id),
                 commit=True
             )
+        execute_query(
+            "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
+            (session.get("usuario_id"), "UPDATE_PATIENT", f"Paciente actualizado ID: {id}", request.remote_addr),
+            commit=True
+        )
         return jsonify({"success": True, "message": "Paciente actualizado"})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
@@ -428,6 +489,11 @@ def api_update_paciente(id):
 def api_delete_paciente(id):
     try:
         execute_query("DELETE FROM pacientes WHERE id = %s", (id,), commit=True)
+        execute_query(
+            "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
+            (session.get("usuario_id"), "DELETE_PATIENT", f"Paciente eliminado ID: {id}", request.remote_addr),
+            commit=True
+        )
         return jsonify({"success": True, "message": "Paciente eliminado"})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
@@ -470,11 +536,19 @@ def api_set_paciente_activo(id):
 @login_required
 def api_save_documento():
     data = request.get_json()
+    if not data or not data.get("paciente_id") or not data.get("tipo_documento") or not data.get("contenido_json"):
+        return jsonify({"success": False, "message": "Faltan datos para el documento"}), 400
+        
     try:
         execute_query(
             "INSERT INTO documentos (paciente_id, usuario_id, tipo_documento, contenido_json) VALUES (%s,%s,%s,%s)",
             (data.get("paciente_id"), session["usuario_id"],
              data.get("tipo_documento"), json.dumps(data.get("contenido_json"))),
+            commit=True
+        )
+        execute_query(
+            "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
+            (session.get("usuario_id"), "GEN_PDF", f"Documento {data.get('tipo_documento')} generado, Paciente: {data.get('paciente_id')}", request.remote_addr),
             commit=True
         )
         return jsonify({"success": True, "message": "Documento guardado"}), 201
@@ -486,12 +560,27 @@ def api_save_documento():
 @login_required
 def api_save_calculo_anestesia():
     data = request.get_json()
+    if not data or not data.get("paciente_id") or not data.get("peso_utilizado") or not data.get("riesgo_asa"):
+        return jsonify({"success": False, "message": "Faltan datos para el cálculo (paciente, peso, riesgo ASA)"}), 400
+        
+    try:
+        peso = float(data.get("peso_utilizado", 0))
+        if peso <= 0:
+            return jsonify({"success": False, "message": "El peso debe ser mayor a 0"}), 400
+    except ValueError:
+        return jsonify({"success": False, "message": "Peso inválido"}), 400
+
     try:
         execute_query(
             "INSERT INTO calculos_anestesia (paciente_id, usuario_id, peso_utilizado, riesgo_asa, protocolo_json) VALUES (%s,%s,%s,%s,%s)",
             (data.get("paciente_id"), session["usuario_id"],
              data.get("peso_utilizado"), data.get("riesgo_asa"),
              json.dumps(data.get("protocolo_json"))),
+            commit=True
+        )
+        execute_query(
+            "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
+            (session.get("usuario_id"), "CALC_ANESTHESIA", f"Cálculo anestesia guardado, Paciente: {data.get('paciente_id')}", request.remote_addr),
             commit=True
         )
         return jsonify({"success": True, "message": "Protocolo guardado"}), 201
