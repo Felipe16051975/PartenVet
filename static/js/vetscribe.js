@@ -317,8 +317,12 @@ function updateCertContent() {
 }
 
 async function generateProfessionalPDF() {
-    if (!state.patient.name) { alert("Seleccione paciente."); return; }
-    if (state.medications.length === 0) { alert("Agregue medicamentos."); return; }
+    const patientNameVal = document.getElementById("patientName").value.trim();
+    const speciesVal = document.getElementById("species").value.trim();
+    const tutorNameVal = document.getElementById("tutorName").value.trim();
+
+    if (!patientNameVal) { alert("Por favor, ingrese el nombre del paciente o seleccione uno."); return; }
+    if (state.medications.length === 0) { alert("Agregue al menos un medicamento a la receta."); return; }
     
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -352,13 +356,13 @@ async function generateProfessionalPDF() {
     doc.setFont("helvetica", "bold");
     doc.text("PACIENTE:", margin + 5, y);
     doc.setFont("helvetica", "normal");
-    doc.text(`${state.patient.name} (${document.getElementById('species').value}) · ${state.patient.weight} kg`, margin + 35, y);
+    doc.text(`${patientNameVal} (${speciesVal}) · ${state.patient.weight || 0} kg`, margin + 35, y);
     
     y += 10;
     doc.setFont("helvetica", "bold");
     doc.text("TUTOR:", margin + 5, y);
     doc.setFont("helvetica", "normal");
-    doc.text(`${state.patient.tutor}`, margin + 35, y);
+    doc.text(`${tutorNameVal}`, margin + 35, y);
     
     y = 85;
     doc.setFontSize(20);
@@ -423,9 +427,13 @@ async function generateProfessionalPDF() {
 }
 
 async function generateCertificatePDF() {
-    if (!state.patient.name) { alert("Seleccione paciente."); return; }
+    const patientNameVal = document.getElementById("patientName").value.trim();
+    const speciesVal = document.getElementById("species").value.trim();
+    const tutorNameVal = document.getElementById("tutorName").value.trim();
     const content = document.getElementById("certContent").value.trim();
-    if (!content) { alert("Contenido vacío."); return; }
+
+    if (!patientNameVal) { alert("Por favor, ingrese el nombre del paciente o seleccione uno."); return; }
+    if (!content) { alert("El cuerpo del certificado está vacío."); return; }
     
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -446,7 +454,7 @@ async function generateCertificatePDF() {
     doc.text(`A QUIEN CORRESPONDA:`, margin, y);
     y += 15;
     
-    const intro = `Por la presente certifico que el paciente ${state.patient.name}, especie ${document.getElementById('species').value}, de propiedad de don/doña ${state.patient.tutor}, ha sido evaluado clínicamente en nuestras dependencias.`;
+    const intro = `Por la presente certifico que el paciente ${patientNameVal}, especie ${speciesVal}, de propiedad de don/doña ${tutorNameVal}, ha sido evaluado clínicamente en nuestras dependencias.`;
     const splitIntro = doc.splitTextToSize(intro, 160);
     doc.text(splitIntro, margin, y);
     y += (splitIntro.length * 7) + 5;
@@ -467,7 +475,7 @@ async function generateCertificatePDF() {
 
 async function saveToPartenVet() {
     if (!state.patient.id || state.medications.length === 0) {
-        alert("Paciente no seleccionado o receta vacía.");
+        alert("Por favor, seleccione un paciente de la base de datos y agregue medicamentos a la receta.");
         return;
     }
     

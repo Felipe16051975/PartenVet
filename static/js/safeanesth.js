@@ -796,6 +796,31 @@ function applyAdjustments(medKey, med, baseDose) {
 function calculateProtocol() {
   clearAlerts();
   
+  const patientNameVal = (document.getElementById("patientName").value || "").trim();
+  if (!patientNameVal) {
+      showAlert("⚠️ Por favor, ingrese el nombre del paciente o seleccione uno.", "caution");
+      const resultsSec = document.getElementById("resultsSection");
+      if (resultsSec) resultsSec.style.display = "none";
+      return;
+  }
+  
+  const weightVal = parseFloat(document.getElementById("weight").value);
+  if (isNaN(weightVal) || weightVal <= 0) {
+      showAlert("⚠️ Por favor, ingrese un peso válido y mayor a 0 para realizar los cálculos.", "caution");
+      const resultsSec = document.getElementById("resultsSection");
+      if (resultsSec) resultsSec.style.display = "none";
+      return;
+  }
+  
+  // Sincronizar estado por si se editaron manualmente los campos de la UI
+  state.patient.name = patientNameVal;
+  state.patient.weight = weightVal;
+  state.patient.species = document.getElementById("species").value;
+  state.patient.age = parseFloat(document.getElementById("age").value) || 0;
+  state.patient.ageCategory = determineAgeCategory(state.patient.age, state.patient.species);
+  state.patient.asaStatus = document.getElementById("asaStatus").value;
+  state.patient.surgeryType = document.getElementById("surgeryType").value;
+  
   let resetTriggered = false;
   state.selectedMedications.premedication.concat(state.selectedMedications.induction, state.selectedMedications.maintenance).forEach(key => {
       const med = medications[key];

@@ -225,7 +225,7 @@ def audit_logs():
 def api_login():
     data = request.get_json()
     if not data or not data.get("correo") or not data.get("password"):
-        return jsonify({"success": False, "message": "Faltan credenciales"}), 400
+        return jsonify({"success": False, "message": "Complete los campos requeridos"}), 400
 
     query = """
         SELECT id, name, password_hash, role
@@ -240,7 +240,7 @@ def api_login():
             ("LOGIN_FAILED", f"Intento fallido: {data['correo']}", request.remote_addr),
             commit=True
         )
-        return jsonify({"success": False, "message": "Credenciales incorrectas"}), 401
+        return jsonify({"success": False, "message": "Credenciales inválidas"}), 401
 
     usuario = users[0]
     session["usuario"]    = data["correo"]
@@ -408,14 +408,37 @@ def api_get_paciente(id):
 
 def _validate_paciente(data):
     if not data: return "Datos vacíos"
-    if not data.get("nombre_paciente") or not str(data.get("nombre_paciente")).strip(): return "El nombre del paciente es obligatorio."
-    if not data.get("especie") or not str(data.get("especie")).strip(): return "Debe seleccionar una especie."
+    if not data.get("nombre_paciente") or not str(data.get("nombre_paciente")).strip(): 
+        return "El nombre del paciente es obligatorio."
+    especie = data.get("especie")
+    if not especie or not str(especie).strip() or str(especie).strip() == "Seleccione...": 
+        return "Debe seleccionar una especie."
     try:
         peso = float(data.get("peso", 0))
         if peso <= 0: return "El peso debe ser mayor a 0."
-    except ValueError:
+    except (ValueError, TypeError):
         return "El peso ingresado no es válido."
-    if not data.get("fecha_nacimiento"): return "La fecha de nacimiento es obligatoria."
+    
+    fecha_nac = data.get("fecha_nacimiento")
+    if not fecha_nac:
+        return "La fecha de nacimiento es obligatoria."
+    
+    from datetime import datetime, date
+    try:
+        if isinstance(fecha_nac, str):
+            fecha_dt = datetime.strptime(fecha_nac, "%Y-%m-%d").date()
+        else:
+            fecha_dt = fecha_nac
+        if fecha_dt > date.today():
+            return "La fecha de nacimiento no puede ser en el futuro."
+    except ValueError:
+        return "La fecha de nacimiento no es válida."
+
+    if not data.get("rut_tutor") or not str(data.get("rut_tutor")).strip():
+        return "El RUT/DNI del tutor es obligatorio."
+    if not data.get("nombres_tutor") or not str(data.get("nombres_tutor")).strip():
+        return "El nombre del tutor es obligatorio."
+        
     return None
 
 @app.route("/api/pacientes", methods=["POST"])

@@ -51,8 +51,14 @@ function renderLogs(logs) {
 }
 
 function getBadgeClass(action) {
-    const successActions = ['LOGIN_SUCCESS', 'INICIO_SESION', 'SAVE_PATIENT', 'SAVE_PROTOCOL', 'GEN_PDF', 'DB_BACKUP'];
-    const errorActions = ['LOGIN_FALLIDO', 'ACCESS_DENIED', 'ERROR_SQL', 'DELETE_USER'];
+    const successActions = [
+        'LOGIN_SUCCESS', 'INICIO_SESION', 'SAVE_PATIENT', 'UPDATE_PATIENT',
+        'SAVE_PROTOCOL', 'GEN_PDF', 'DB_BACKUP', 'CREATE_USER', 'UPDATE_USER'
+    ];
+    const errorActions = [
+        'LOGIN_FALLIDO', 'LOGIN_FAILED', 'ACCESS_DENIED', 'ERROR_SQL',
+        'DELETE_USER', 'DELETE_PATIENT'
+    ];
     const warningActions = ['DB_RESTORE', 'UPDATE_CONFIG'];
     
     if (successActions.includes(action)) return 'badge-success';
