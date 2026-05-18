@@ -440,6 +440,8 @@ def api_create_paciente():
             "INSERT INTO pacientes (tutor_id, nombre, especie, raza, sexo, fecha_nacimiento, peso_actual) VALUES (%s,%s,%s,%s,%s,%s,%s)",
             (tutor_id, data.get("nombre_paciente"), data.get("especie"), data.get("raza"),
              data.get("sexo"), data.get("fecha_nacimiento"), data.get("peso")),
+            commit=True
+        )
         execute_query(
             "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
             (session.get("usuario_id"), "SAVE_PATIENT", f"Paciente creado: {data.get('nombre_paciente')}", request.remote_addr),
