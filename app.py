@@ -614,6 +614,30 @@ def api_set_paciente_activo(id):
     return jsonify({"success": True, "message": "Paciente activo actualizado"})
 
 
+@app.route("/api/paciente-activo", methods=["DELETE"])
+@login_required
+def api_clear_paciente_activo():
+    id_activo = session.get("paciente_id_activo")
+    nombre_paciente = "N/A"
+    if id_activo:
+        res = execute_query("SELECT nombre FROM pacientes WHERE id = %s", (id_activo,), fetch=True)
+        if res:
+            nombre_paciente = res[0]["nombre"]
+        
+        session.pop("paciente_id_activo", None)
+        
+        usuario_nombre = session.get("usuario", "Usuario Desconocido")
+        execute_query(
+            "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
+            (session.get("usuario_id"), "CLOSE_CONSULTATION", f"Consulta cerrada. Paciente: {nombre_paciente}, Usuario: {usuario_nombre}", request.remote_addr),
+            commit=True
+        )
+        return jsonify({"success": True, "message": "Consulta activa cerrada correctamente"})
+    
+    return jsonify({"success": False, "message": "No hay consulta activa para cerrar"}), 400
+
+
+
 # ---------------------------------------------------------------------------
 # API — Documentos y cálculos anestésicos
 # ---------------------------------------------------------------------------

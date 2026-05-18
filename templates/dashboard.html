@@ -24,6 +24,7 @@
             {% if session.get('user_role') == 'admin' %}
             <a href="/safe-anesthesia" class="btn-primary btn-white">Ir a SafeAnesth</a>
             <a href="/vetscribe" class="btn-primary btn-white">Ir a VetScribe</a>
+            <button class="btn-danger-outline" onclick="closeActiveConsultation()">Cerrar Consulta</button>
             {% else %}
             <span class="badge badge-info">Consulta en progreso</span>
             {% endif %}
@@ -116,5 +117,24 @@
         }
     }
     checkActiveContext();
+
+    // Cerrar Consulta Activa
+    async function closeActiveConsultation() {
+        if (!confirm("¿Desea cerrar la consulta activa?")) {
+            return;
+        }
+        try {
+            const res = await fetchAPI('/paciente-activo', { method: 'DELETE' });
+            if (res.success) {
+                document.getElementById('activePatientBanner').style.display = 'none';
+                console.log("Consulta activa cerrada.");
+            } else {
+                alert("Error al cerrar la consulta: " + res.message);
+            }
+        } catch (e) {
+            console.error("Error al cerrar la consulta:", e);
+            alert("No se pudo cerrar la consulta activa.");
+        }
+    }
 </script>
 {% endblock %}
