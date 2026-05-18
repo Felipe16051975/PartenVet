@@ -46,3 +46,6 @@ requirements.pdf
 
 # Directorio de trabajo temporal
 scratch/
+
+# Scripts de prueba locales
+tests/
