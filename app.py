@@ -450,15 +450,34 @@ def api_create_paciente():
         return jsonify({"success": False, "message": err}), 400
 
     try:
-        execute_query(
-            "INSERT INTO tutores (rut_dni, nombres, apellidos, telefono, correo, direccion) VALUES (%s,%s,%s,%s,%s,%s)",
-            (data.get("rut_tutor"), data.get("nombres_tutor"), data.get("apellidos_tutor"),
-             data.get("telefono_tutor"), data.get("correo_tutor"), data.get("direccion_tutor")),
-            commit=True
-        )
-        last = execute_query("SELECT id FROM tutores ORDER BY id DESC LIMIT 1", fetch=True)
-        tutor_id = last[0]["id"]
+        rut = data.get("rut_tutor")
+        # 1. Verificar si el tutor ya existe por su RUT/DNI
+        tutor_res = execute_query("SELECT id FROM tutores WHERE rut_dni = %s", (rut,), fetch=True)
+        
+        if tutor_res:
+            tutor_id = tutor_res[0]["id"]
+            # Si el tutor ya existe, actualizamos sus datos
+            execute_query(
+                "UPDATE tutores SET nombres=%s, apellidos=%s, telefono=%s, correo=%s, direccion=%s WHERE id=%s",
+                (data.get("nombres_tutor"), data.get("apellidos_tutor"), data.get("telefono_tutor"),
+                 data.get("correo_tutor"), data.get("direccion_tutor"), tutor_id),
+                commit=True
+            )
+        else:
+            # Si no existe, lo insertamos
+            execute_query(
+                "INSERT INTO tutores (rut_dni, nombres, apellidos, telefono, correo, direccion) VALUES (%s,%s,%s,%s,%s,%s)",
+                (rut, data.get("nombres_tutor"), data.get("apellidos_tutor"),
+                 data.get("telefono_tutor"), data.get("correo_tutor"), data.get("direccion_tutor")),
+                commit=True
+            )
+            # Obtenemos el ID del tutor recién creado de forma segura filtrando por su RUT
+            last = execute_query("SELECT id FROM tutores WHERE rut_dni = %s", (rut,), fetch=True)
+            if not last:
+                last = execute_query("SELECT id FROM tutores ORDER BY id DESC LIMIT 1", fetch=True)
+            tutor_id = last[0]["id"]
 
+        # 2. Insertamos el paciente asociándolo al tutor_id correcto
         execute_query(
             "INSERT INTO pacientes (tutor_id, nombre, especie, raza, sexo, fecha_nacimiento, peso_actual) VALUES (%s,%s,%s,%s,%s,%s,%s)",
             (tutor_id, data.get("nombre_paciente"), data.get("especie"), data.get("raza"),
@@ -467,7 +486,7 @@ def api_create_paciente():
         )
         execute_query(
             "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
-            (session.get("usuario_id"), "SAVE_PATIENT", f"Paciente creado: {data.get('nombre_paciente')}", request.remote_addr),
+            (session.get("usuario_id"), "SAVE_PATIENT", f"Paciente creado: {data.get('nombre_paciente')} con tutor: {data.get('nombres_tutor')}", request.remote_addr),
             commit=True
         )
         return jsonify({"success": True, "message": "Paciente registrado"})
@@ -484,24 +503,66 @@ def api_update_paciente(id):
         return jsonify({"success": False, "message": err}), 400
 
     try:
+        # 1. Obtener tutor actual del paciente
+        tutor_res = execute_query("SELECT tutor_id FROM pacientes WHERE id=%s", (id,), fetch=True)
+        if not tutor_res:
+            return jsonify({"success": False, "message": "Paciente no encontrado"}), 404
+        
+        old_tutor_id = tutor_res[0]["tutor_id"]
+        rut_nuevo = data.get("rut_tutor")
+
+        # 2. Verificar si el nuevo RUT ya existe en otro tutor
+        existing_tutor = execute_query("SELECT id FROM tutores WHERE rut_dni = %s", (rut_nuevo,), fetch=True)
+        
+        if existing_tutor:
+            new_tutor_id = existing_tutor[0]["id"]
+            # Si ya existe, actualizamos sus datos
+            execute_query(
+                "UPDATE tutores SET nombres=%s, apellidos=%s, telefono=%s, correo=%s, direccion=%s WHERE id=%s",
+                (data.get("nombres_tutor"), data.get("apellidos_tutor"), data.get("telefono_tutor"),
+                 data.get("correo_tutor"), data.get("direccion_tutor"), new_tutor_id),
+                commit=True
+            )
+            # Asociamos el paciente a este tutor existente
+            tutor_id_to_use = new_tutor_id
+        else:
+            # Si no existe en la BD, vemos si el tutor actual es compartido
+            count_res = execute_query("SELECT COUNT(*) as count FROM pacientes WHERE tutor_id = %s", (old_tutor_id,), fetch=True)
+            tutor_is_shared = count_res and count_res[0]["count"] > 1
+
+            if tutor_is_shared:
+                # Es compartido, creamos un tutor nuevo para no afectar a otros pacientes
+                execute_query(
+                    "INSERT INTO tutores (rut_dni, nombres, apellidos, telefono, correo, direccion) VALUES (%s,%s,%s,%s,%s,%s)",
+                    (rut_nuevo, data.get("nombres_tutor"), data.get("apellidos_tutor"),
+                     data.get("telefono_tutor"), data.get("correo_tutor"), data.get("direccion_tutor")),
+                    commit=True
+                )
+                last = execute_query("SELECT id FROM tutores WHERE rut_dni = %s", (rut_nuevo,), fetch=True)
+                if not last:
+                    last = execute_query("SELECT id FROM tutores ORDER BY id DESC LIMIT 1", fetch=True)
+                tutor_id_to_use = last[0]["id"]
+            else:
+                # No es compartido, podemos actualizar directamente el tutor actual
+                execute_query(
+                    "UPDATE tutores SET rut_dni=%s, nombres=%s, apellidos=%s, telefono=%s, correo=%s, direccion=%s WHERE id=%s",
+                    (rut_nuevo, data.get("nombres_tutor"), data.get("apellidos_tutor"),
+                     data.get("telefono_tutor"), data.get("correo_tutor"), data.get("direccion_tutor"), old_tutor_id),
+                    commit=True
+                )
+                tutor_id_to_use = old_tutor_id
+
+        # 3. Actualizar datos del paciente, incluyendo el tutor_id correcto
         execute_query(
-            "UPDATE pacientes SET nombre=%s, especie=%s, raza=%s, sexo=%s, fecha_nacimiento=%s, peso_actual=%s WHERE id=%s",
-            (data.get("nombre_paciente"), data.get("especie"), data.get("raza"),
+            "UPDATE pacientes SET tutor_id=%s, nombre=%s, especie=%s, raza=%s, sexo=%s, fecha_nacimiento=%s, peso_actual=%s WHERE id=%s",
+            (tutor_id_to_use, data.get("nombre_paciente"), data.get("especie"), data.get("raza"),
              data.get("sexo"), data.get("fecha_nacimiento"), data.get("peso"), id),
             commit=True
         )
-        tutor_res = execute_query("SELECT tutor_id FROM pacientes WHERE id=%s", (id,), fetch=True)
-        if tutor_res:
-            tutor_id = tutor_res[0]["tutor_id"]
-            execute_query(
-                "UPDATE tutores SET rut_dni=%s, nombres=%s, apellidos=%s, telefono=%s, correo=%s, direccion=%s WHERE id=%s",
-                (data.get("rut_tutor"), data.get("nombres_tutor"), data.get("apellidos_tutor"),
-                 data.get("telefono_tutor"), data.get("correo_tutor"), data.get("direccion_tutor"), tutor_id),
-                commit=True
-            )
+
         execute_query(
             "INSERT INTO logs_sistema (usuario_id, accion, descripcion, ip_origen) VALUES (%s, %s, %s, %s)",
-            (session.get("usuario_id"), "UPDATE_PATIENT", f"Paciente actualizado ID: {id}", request.remote_addr),
+            (session.get("usuario_id"), "UPDATE_PATIENT", f"Paciente actualizado ID: {id} con tutor: {data.get('nombres_tutor')}", request.remote_addr),
             commit=True
         )
         return jsonify({"success": True, "message": "Paciente actualizado"})
